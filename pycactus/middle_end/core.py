@@ -321,6 +321,7 @@ class Quantum_control_processor():
         elif insn.name == InsnName.LDUI:
             self.update_reg(insn.rd, BitArray(int=insn.imm,
                                               length=len(self.gprf[insn.rd])))
+            self.gprf[insn.rd].bitstring[]
         else:
             raise ValueError(
                 "Found undefined instruction ({}).".format(insn))
