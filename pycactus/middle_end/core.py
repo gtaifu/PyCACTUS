@@ -1,10 +1,12 @@
 from bitstring import BitArray, BitStream
 from enum import Enum, auto
 from pycactus.utils import *
+from pycactus.middle_end.q_pipeline import *
 
 SIZE_INSN_MEM = 1000000  # accept up to 1 million instructions.
 NUM_GPR = 32
 GPR_WIDTH = 32
+NUM_QUBIT = 7
 
 logger = get_logger(__file__)
 
@@ -35,6 +37,9 @@ class General_purpose_register():
         unsigned_sum = self.bitstring.uint + other.bitstring.uint
         return BitArray(uint=unsigned_sum, length=self._width)
 
+    def __not__(self):
+        return ~self.bitstring
+
     def __sub__(self, other):
         self.check_length(other)
         unsigned_sum = self.bitstring.uint + (~other.bitstring).uint + 1
@@ -55,6 +60,14 @@ class General_purpose_register():
         unsigned_sum = self.bitstring.uint ^ other.bitstring.uint
         return BitArray(uint=unsigned_sum, length=self._width)
 
+    def __eq__(self, other):
+        self.check_length(other)
+        return self.bitstring == other.bitstring
+
+    def __ne__(self, other):
+        self.check_length(other)
+        return self.bitstring != other.bitstring
+
     def update_value(self, value):
 
         if isinstance(value, int):
@@ -71,59 +84,6 @@ class General_purpose_register():
                 "Undefined type ({}) is used to update the GPR.".format(type(value)))
 
 
-class Sq_register():
-    def __init__(self, max_num_qubit):
-        self._qubits = []
-        self._max_num_qubit = max_num_qubit
-
-    def __getitem__(self, item):
-        """Return indexed operation."""
-        return self._qubits[item]
-
-    def __len__(self):
-        """Return number of qubit pairs in this single-qubit target register."""
-        return len(self._qubits)
-
-    def append(self, qubit):
-        assert(isinstance(qubit, int))
-
-        if qubit not in self._qubits:
-            if self.__len__() >= self.max_num_qubit:
-                raise ValueError("The sq_register is already full (with {} elements).".format(
-                    self.max_num_qubit))
-            else:
-                self._qubits.append(qubit)
-
-
-class Tq_register():
-    def __init__(self, max_num_qubit_pair: int):
-        self._qubit_pairs = []
-        self._max_num_qubit_pair = max_num_qubit_pair
-
-    def __getitem__(self, item):
-        """Return indexed operation."""
-        return self._qubit_pairs[item]
-
-    def __len__(self):
-        """Return number of qubit pairs in this two-qubit target register."""
-        return len(self._qubit_pairs)
-
-    def append(self, qubit_pair):
-        assert(isinstance(qubit_pair, tuple))
-        assert(len(qubit_pair) == 2)
-
-        if qubit_pair not in self._qubit_pairs:
-            if self.__len__() >= self._max_num_qubit_pair:
-                raise ValueError("The tq_register is already full (with {} elements).".format(
-                    self._max_num_qubit_pair))
-            else:
-                self._qubit_pairs.append(qubit_pair)
-
-    # def __iadd__(self, qubit_pair):
-    #     """Overload += to implement self.extend."""
-    #     return self.append(qubit_pair)
-
-
 class InsnType(Enum):
     UNDEFINED = 0
     CLASSICAL = 1
@@ -131,24 +91,38 @@ class InsnType(Enum):
 
 
 class InsnName(Enum):
-    ADD = auto()
-    SUB = auto()
+    # no operand
     NOP = auto()
-    BR = auto()
     STOP = auto()
-    CMP = auto()
-    FBR = auto()
-    FMR = auto()
-    LDI = auto()
-    LDUI = auto()
-    LD = auto()
-    ST = auto()
+
+    # one operand
+    QWAIT = auto()  # one imm
+    QWAITR = auto()  # one GPR
+
+    # two operands
+    # one src GPR, one dst GPR
+    NOT = auto()  # NOT Rd, Rt
+
+    # two src GPR
+    CMP = auto()  # CMP Rs, Rt
+
+    BR = auto()   # BR <cmp_flag>, <label>
+    FBR = auto()  # FBR <cmp_flag>, Rd
+    FMR = auto()  # FMR Rd, Qi
+
+    LDI = auto()  # LDI Rd, Imm20
+
+    # three operands
+    ADD = auto()  # two src, one dst
+    SUB = auto()
     OR = auto()
     XOR = auto()
     AND = auto()
-    NOT = auto()
-    QWAIT = auto()
-    QWAITR = auto()
+
+    LDUI = auto()  # one imm, one src GPR, one dst GPR
+
+    LD = auto()    # LD Rd, Rt(imm10) one imm, one src GPR, one dst GPR
+    ST = auto()
 
 
 three_reg_cl_insn = {
@@ -171,6 +145,8 @@ class Instruction():
         self.qi = kwargs.pop('qi', None)
         self.label = kwargs.pop('label', None)
         self.comp_flag = kwargs.pop('comp_flag', None)
+        # integer format.
+        # the bit length should be checked when generating this instruction
         self.imm = kwargs.pop('imm', None)
 
     def __str__(self):
@@ -188,6 +164,21 @@ class Instruction():
     #     return self.insn_type == InsnType.QUANTUM
 
 
+class CMP_FLAG(Enum):
+    ALWAYS = 0
+    NEVER = 1
+    EQ = auto()
+    NE = auto()
+    LTU = auto()
+    GEU = auto()
+    LEU = auto()
+    GTU = auto()
+    LT = auto()
+    GE = auto()
+    LE = auto()
+    GT = auto()
+
+
 class Quantum_control_processor():
     def __init__(self, start_addr=0):
         self.gprf = []
@@ -200,11 +191,18 @@ class Quantum_control_processor():
         # two-qubit operation target register file
         self.tqotrf = Tq_register(32)
 
+        # instruction memory
         self.insn_mem = []
         self.label_addr = {}
         self.max_insn_num = SIZE_INSN_MEM
 
+        # qubit measurement result
+        self.msmt_result = [0] * NUM_QUBIT
+
         self.pc = start_addr
+
+        # comparison flags
+        self.cmp_flags = [True] + [False] * (len(CMP_FLAG) - 1)
 
         self.cycle = 0
 
@@ -238,34 +236,91 @@ class Quantum_control_processor():
             self.pc += 1
             self.print_gprf()
 
+    def update_reg(self, rd, value):
+        '''Update the target register `rd` with the `value`
+        '''
+        self.gprf[rd].update_value(value)
+
     def process_insn(self, insn):
         print("cycle {}: {}".format(self.cycle, insn))
+        # ------------------------- no operand -------------------------
         if insn.name == InsnName.STOP:
             return False
 
         elif insn.name == InsnName.NOP:
             pass
 
+        # ------------------------- one operand -------------------------
+        elif insn.name == InsnName.QWAIT:
+            pass
+
+        elif insn.name == InsnName.QWAITR:
+            pass
+
+        # ------------------------- two operands -------------------------
+        elif insn.name == InsnName.NOT:
+            self.update_reg(insn.rd, ~self.gprf[insn.rt])
+
+        elif insn.name == InsnName.CMP:
+            self.cmp_flags[CMP_FLAG.EQ] = (
+                self.gprf[insn.rs] == self.gprf[insn.rt])
+            self.cmp_flags[CMP_FLAG.NE] = (
+                self.gprf[insn.rs] != self.gprf[insn.rt])
+            self.cmp_flags[CMP_FLAG.LTU] = (
+                self.gprf[insn.rs].uint < self.gprf[insn.rt].uint)
+            self.cmp_flags[CMP_FLAG.GEU] = (
+                self.gprf[insn.rs].uint >= self.gprf[insn.rt].uint)
+            self.cmp_flags[CMP_FLAG.LEU] = (
+                self.gprf[insn.rs].uint <= self.gprf[insn.rt].uint)
+            self.cmp_flags[CMP_FLAG.GTU] = (
+                self.gprf[insn.rs].uint > self.gprf[insn.rt].uint)
+            self.cmp_flags[CMP_FLAG.LT] = (
+                self.gprf[insn.rs].int < self.gprf[insn.rt].int)
+            self.cmp_flags[CMP_FLAG.GE] = (
+                self.gprf[insn.rs].int >= self.gprf[insn.rt].int)
+            self.cmp_flags[CMP_FLAG.LE] = (
+                self.gprf[insn.rs].int <= self.gprf[insn.rt].int)
+            self.cmp_flags[CMP_FLAG.GT] = (
+                self.gprf[insn.rs].int > self.gprf[insn.rt].int)
+
+        elif insn.name == InsnName.BR:
+            if self.cmp_flags[insn.comp_flag]:
+                self.pc = self.label_addr[insn.label]
+
+        elif insn.name == InsnName.FBR:
+            self.update_reg(insn.rd, self.cmp_flags[insn.cmp_flag])
+
+        elif insn.name == InsnName.FMR:
+            self.update_reg(insn.rd, self.msmt_result[insn.qi])
+
+        elif insn.name == InsnName.LDI:
+            self.update_reg(insn.rd, BitArray(int=insn.imm,
+                                              length=len(self.gprf[insn.rd])))
+
+        # ------------------------- three operands -------------------------
         elif insn.name == InsnName.ADD:
-            self.gprf[insn.rd].update_value(
-                self.gprf[insn.rs] + self.gprf[insn.rt])
+            self.update_reg(insn.rd,
+                            self.gprf[insn.rs] + self.gprf[insn.rt])
 
         elif insn.name == InsnName.SUB:
-            self.gprf[insn.rd].update_value(
-                self.gprf[insn.rs] - self.gprf[insn.rt])
+            self.update_reg(insn.rd,
+                            self.gprf[insn.rs] - self.gprf[insn.rt])
 
         elif insn.name == InsnName.AND:
-            self.gprf[insn.rd].update_value(
-                self.gprf[insn.rs] & self.gprf[insn.rt])
+            self.update_reg(insn.rd,
+                            self.gprf[insn.rs] & self.gprf[insn.rt])
 
         elif insn.name == InsnName.OR:
-            self.gprf[insn.rd].update_value(
-                self.gprf[insn.rs] | self.gprf[insn.rt])
+            self.update_reg(insn.rd,
+                            self.gprf[insn.rs] | self.gprf[insn.rt])
 
         elif insn.name == InsnName.XOR:
-            self.gprf[insn.rd].update_value(
-                self.gprf[insn.rs] ^ self.gprf[insn.rt])
+            self.update_reg(insn.rd,
+                            self.gprf[insn.rs] ^ self.gprf[insn.rt])
 
+        elif insn.name == InsnName.LDUI:
+            self.update_reg(insn.rd, BitArray(int=insn.imm,
+                                              length=len(self.gprf[insn.rd])))
         else:
             raise ValueError(
                 "Found undefined instruction ({}).".format(insn))
