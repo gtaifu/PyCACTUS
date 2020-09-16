@@ -1,0 +1,281 @@
+from bitstring import BitArray
+from pycactus.utils import *
+from pycactus.q_pipeline import *
+from pycactus.insn import *
+from pycactus.gpr import *
+from pycactus.memory import Memory
+import pycactus.global_config as gc
+
+
+logger = get_logger(__file__)
+# logger.setLevel(logging.DEBUG)
+
+
+class Quantum_control_processor():
+    def __init__(self, start_addr=0):
+
+        self.gprf = GPRF()  # general purpose register file
+        self.fprf = None    # floating point register file
+
+        # single-qubit operation target register file
+        self.sqotrf = Sq_register(32)
+        # two-qubit operation target register file
+        self.tqotrf = Tq_register(32)
+
+        # instruction memory
+        self.insn_mem = []
+        self.label_addr = {}
+        self.max_insn_num = gc.SIZE_INSN_MEM
+
+        # data memory
+        self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
+
+        # qubit measurement result
+        self.msmt_result = [0] * gc.NUM_QUBIT
+
+        self.pc = start_addr
+        self.stop_bit = 0
+
+        # comparison flags
+        self.cmp_flags = [True] + [False] * (len(CMP_FLAG) - 1)
+
+        self.cycle = 0
+
+    def dump_cmp_flags(self):
+        for key in CMP_FLAG:
+            print("{:>6}: {}".format(key, int(self.cmp_flags[CMP_FLAG[key]])))
+
+    def append_insn(self, insn):
+        self.insn_mem.append(insn)
+
+        if insn.labels is not None:
+            for label in insn.labels:
+                if label in self.label_addr:
+                    raise ValueError(
+                        "Found multiple definitions for the same label ({})".format(label))
+
+                self.label_addr[label] = len(self.insn_mem) - 1
+
+        logger.debug("insn mem size: {}.".format(len(self.insn_mem)))
+
+    def advance_one_cycle(self):
+        self.cycle += 1
+
+        # fetch the instruction
+        insn = self.insn_mem[self.pc]
+        logger.debug("PC: {}, insn: {}".format(self.pc, insn))
+
+        self.process_insn(insn)  # execute
+
+    def write_gpr(self, rd: int, value: BitArray):
+        '''Update the target register `rd` with the `value`
+        '''
+        if isinstance(value, int):
+            value = BitArray(int=value, length=32)
+        self.gprf.write(rd, value)
+
+    def read_gpr_unsigned(self, rs: int):
+        return self.gprf.read_unsigned(rs)
+
+    def read_gpr_signed(self, rs: int):
+        return self.gprf.read_signed(rs)
+
+    def print_gpr(self, rd):
+        self.gprf.print_reg(rd)
+
+    def run(self):
+        while (self.stop_bit == 0):
+            self.advance_one_cycle()
+
+    def process_insn(self, insn):
+        print("cycle {}: {}".format(self.cycle, insn))
+        # ------------------------- no operand -------------------------
+        if insn.name == InsnName.STOP:
+            self.stop_bit = 1
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.NOP:
+            self.pc += 1             # update the PC
+
+        # ------------------------- one operand -------------------------
+        elif insn.name == InsnName.QWAIT:
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.QWAITR:
+            self.pc += 1             # update the PC
+
+        # ------------------------- two operands -------------------------
+        elif insn.name == InsnName.NOT:
+            assert(insn.rd is not None)
+            assert(insn.rt is not None)
+            print("~self.gprf[insn.rt]: ", ~self.gprf[insn.rt])
+            self.write_gpr(insn.rd, ~self.gprf[insn.rt])
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.CMP:
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.cmp_flags[CMP_FLAG['EQ']] = (
+                self.gprf[insn.rs] == self.gprf[insn.rt])
+            self.cmp_flags[CMP_FLAG['NE']] = (
+                self.gprf[insn.rs] != self.gprf[insn.rt])
+            self.cmp_flags[CMP_FLAG['LTU']] = (
+                self.read_gpr_unsigned(insn.rs) < self.read_gpr_unsigned(insn.rt))
+            self.cmp_flags[CMP_FLAG['GEU']] = (
+                self.read_gpr_unsigned(insn.rs) >= self.read_gpr_unsigned(insn.rt))
+            self.cmp_flags[CMP_FLAG['LEU']] = (
+                self.read_gpr_unsigned(insn.rs) <= self.read_gpr_unsigned(insn.rt))
+            self.cmp_flags[CMP_FLAG['GTU']] = (
+                self.read_gpr_unsigned(insn.rs) > self.read_gpr_unsigned(insn.rt))
+            self.cmp_flags[CMP_FLAG['LT']] = (
+                self.read_gpr_signed(insn.rs) < self.read_gpr_signed(insn.rt))
+            self.cmp_flags[CMP_FLAG['GE']] = (
+                self.read_gpr_signed(insn.rs) >= self.read_gpr_signed(insn.rt))
+            self.cmp_flags[CMP_FLAG['LE']] = (
+                self.read_gpr_signed(insn.rs) <= self.read_gpr_signed(insn.rt))
+            self.cmp_flags[CMP_FLAG['GT']] = (
+                self.read_gpr_signed(insn.rs) > self.read_gpr_signed(insn.rt))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.BR:
+            assert(insn.cmp_flag is not None)
+            assert(insn.target_label is not None)
+            if self.cmp_flags[CMP_FLAG[insn.cmp_flag]]:
+                self.pc = self.label_addr[insn.target_label]
+                print("next pc: ", self.pc)
+
+        elif insn.name == InsnName.FBR:
+            assert(insn.rd is not None)
+            assert(insn.cmp_flag is not None)
+            self.write_gpr(insn.rd, self.cmp_flags[CMP_FLAG[insn.cmp_flag]])
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FMR:
+            assert(insn.rd is not None)
+            assert(insn.qi is not None)
+            self.write_gpr(insn.rd, self.msmt_result[insn.qi])
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.LDI:
+            assert(insn.rd is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            self.write_gpr(insn.rd, BitArray(int=insn.imm,
+                                             length=len(self.gprf[insn.rd])))
+
+            self.pc += 1             # update the PC
+
+        # ------------------------- three operands -------------------------
+        elif insn.name == InsnName.ADD:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.write_gpr(insn.rd, self.gprf[insn.rs] + self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.SUB:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.write_gpr(insn.rd, self.gprf[insn.rs] - self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.AND:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.write_gpr(insn.rd, self.gprf[insn.rs] & self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.OR:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.write_gpr(insn.rd, self.gprf[insn.rs] | self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.XOR:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            self.write_gpr(insn.rd, self.gprf[insn.rs] ^ self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.LDUI:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as unsigned integer
+            composed_bitstring = BitArray(
+                uint=insn.imm, length=15) + self.gprf[insn.rs][15:32]
+            self.write_gpr(insn.rd, composed_bitstring)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.LW:
+            assert(insn.rd is not None)
+            assert(insn.rt is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            ret_word = self.data_mem.read_word(addr)
+            self.write_gpr(insn.rd, ret_word)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name in [InsnName.LB, InsnName.LBU]:
+            assert(insn.rd is not None)
+            assert(insn.rt is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            ret_byte = self.data_mem.read_byte(addr)
+
+            if insn.name == InsnName.LB:
+                # signed extension
+                se_word = BitArray(int=ret_byte.int, length=32)
+            else:  # LBU
+                # unsigned extension
+                se_word = BitArray(uint=ret_byte.uint, length=32)
+
+            self.write_gpr(insn.rd, se_word)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.SW:
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            self.data_mem.write_word(addr, self.gprf.read(insn.rs))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.SB:
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            self.data_mem.write_byte(addr, self.gprf.read(insn.rs)[24:32])
+
+            self.pc += 1             # update the PC
+
+        else:
+            raise ValueError(
+                "Found undefined instruction ({}).".format(insn))
+
+        return True
