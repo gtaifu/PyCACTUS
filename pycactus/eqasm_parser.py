@@ -3,8 +3,8 @@
 # tokenizer for a simple expression evaluator for
 # numbers and +,-,*,/
 # ------------------------------------------------------------
+import re
 import ply.lex as lex
-
 # List of token names.   This is always required
 
 reserved = {
@@ -47,20 +47,24 @@ tokens = [
     'TIMES',
     'DIVIDE',
     'DOT',
-    'NUMBER',
+    'HEX',
+    'INTEGER',
+    # 'NUMBER',
+    'LABEL',
     'IDENTIFIER',
     'GPR',
+    'SREG',
+    'TREG',
     'PARALLEL',
     'RIGHT_ARROW'
 ] + list(reserved.values())
 
-literals = ['{', '}', '(', ')', ',']
+literals = ['{', '}', '(', ')']
 # Regular expression rules for simple tokens
 # t_LPAREN = r'\('
 # t_RPAREN = r'\)'
 # t_LBRACE = r"\{"
 # t_RBRACE = r"\}"
-t_COMMA = r","
 t_COLON = r":"
 t_PARALLEL = r'\|'
 t_PLUS = r'\+'
@@ -69,11 +73,51 @@ t_TIMES = r'\*'
 t_DOT = "\."
 
 
-# A regular expression rule with some action code
+def t_HEX(t):
+    r'0x[0-9a-fA-F]+'
+    # print("t.value in t_HEX: ", t.value)
+    # print("t.value in t_HEX: ", type(t.value))
+    # print("str(t.value): ", type(str(t.value)))
+    t.type = 'INTEGER'
+    t.value = int(str(t.value), base=16)
+    return t
 
-def t_NUMBER(t):
+
+def t_INTEGER(t):
     r'\d+'
     t.value = int(t.value)
+    return t
+
+
+def t_COMMA(t):
+    r","
+
+# A regular expression rule with some action code
+
+
+# def t_NUMBER(t):
+#     r'\d+'
+#     t.value = int(t.value)
+#     return t
+
+def t_LABEL(t):
+    r'[a-zA-Z_][a-zA-Z_0-9]*:'
+    t.type = 'LABEL'
+    t.value = t.value[:-1]
+    return t
+
+
+def t_SReg(t):
+    r's\d+'
+    t.type = 'SREG'
+    t.value = int(t.value[1:])
+    return t
+
+
+def t_TReg(t):
+    r's\d+'
+    t.type = 'TREG'
+    t.value = int(t.value[1:])
     return t
 
 
@@ -106,7 +150,7 @@ t_ignore_COMMENT = r'\#.'
 # Error handling rule
 def t_error(t):
     raise ValueError("Found illegal character '%s'" % t.value[0])
-    t.lexer.skip(1)
+    # t.lexer.skip(1)
 
 
 def find_column(input, token):
@@ -115,21 +159,21 @@ def find_column(input, token):
 
 
 # Build the lexer
-lexer = lex.lex()
+lexer = lex.lex(debug=True, reflags=re.IGNORECASE)
 
 
 # Test it out
 data = '''
+ldi r9, 0x1001c
 ADDI r7, r0, 0
 ARRAY_0:
 CMP r7, r5
 NOP
 FBR LE, r8
 BNE r8, r1, ARRAY_0_END
-LDI r9, 0x1001c
 LDUI r9, r9, 0x0
 ADDI r9, r2, 0
-ADDI r10, r0, 2 ///
+ADDI r10, r0, 2
 SW r10, 0(r9)
 ADDI r2, r2, 6
 SW r9, 0(r6)
@@ -146,7 +190,7 @@ LDUI r25, r25, 0x0
 '''
 
 # Give the lexer some input
-lexer.input(data)
+lexer.input(data.lower())
 
 # for token in lexer:
 #     print(token)
