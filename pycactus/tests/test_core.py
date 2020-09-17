@@ -1,5 +1,5 @@
 from bitstring import BitArray
-from pycactus.core import Quantum_control_processor
+from pycactus.qcp import Quantum_control_processor
 from pycactus.insn import *
 import pycactus.global_config as gc
 
@@ -11,10 +11,6 @@ for i in range(gc.NUM_GPR):
 
 def add_insn(name, **kwargs):
     qcp.append_insn(Instruction(name=name, **kwargs))
-
-
-def gpr(rd):
-    return qcp.gprf[rd].bitstring
 
 
 def test_arith():
@@ -37,13 +33,10 @@ def test_LDI():
     qcp.advance_one_cycle()
     add_insn(InsnName.LDUI, rd=rd, rs=rd, imm=upper15bits)
     qcp.advance_one_cycle()
-    # print("upper bits: ", bin(upper15bits))
-    # print("gpr({}).int: ".format(rd), gpr(rd).int)
     assert(qcp.read_gpr_signed(rd) == lower17bits)
     add_insn(InsnName.STOP)
     qcp.advance_one_cycle()
-    # print("gpr(rd): ", gpr(rd).hex)
-    assert(gpr(rd).uint == large_number)
+    assert(qcp.read_gpr_unsigned(rd) == large_number)
 
 
 def test_CMP():
@@ -52,13 +45,10 @@ def test_CMP():
                    [2**31-1, -2**31], [-2**31, 2**31-1]]
 
     for vp in value_pairs:
-        # qcp.gprf[1].update_value(vp[0])
-        # qcp.gprf[2].update_value(vp[1])
         qcp.write_gpr(1, vp[0])
         qcp.write_gpr(2, vp[1])
         add_insn(InsnName.CMP, rs=1, rt=2)
         qcp.advance_one_cycle()
-        # print("comparing {} v.s.{}".format(vp[0], vp[1]))
         qcp.print_gpr(1)
         qcp.print_gpr(2)
         qcp.dump_cmp_flags()
@@ -103,7 +93,6 @@ def test_FMR():
         add_insn(InsnName.FMR, rd=0, qi=i)
         qcp.advance_one_cycle()
         assert(qcp.read_gpr_signed(0) == (i % 2))
-        # assert(qcp.gprf[0].signed_value() == (i % 2))
 
 
 def test_ADD():

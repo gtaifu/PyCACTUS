@@ -1,3 +1,5 @@
+from pycactus.gpr import General_purpose_register
+
 
 def test_gpr():
     gpr0 = General_purpose_register(32)

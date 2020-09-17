@@ -1,6 +1,6 @@
 from bitstring import BitArray
 from pycactus.utils import *
-from pycactus.q_pipeline import *
+from pycactus.qotr import QOTRF
 from pycactus.insn import *
 from pycactus.gpr import *
 from pycactus.memory import Memory
@@ -17,10 +17,8 @@ class Quantum_control_processor():
         self.gprf = GPRF()  # general purpose register file
         self.fprf = None    # floating point register file
 
-        # single-qubit operation target register file
-        self.sqotrf = Sq_register(32)
-        # two-qubit operation target register file
-        self.tqotrf = Tq_register(32)
+        # operation target register files
+        self.qotrf = QOTRF()
 
         # instruction memory
         self.insn_mem = []
@@ -273,6 +271,19 @@ class Quantum_control_processor():
             self.data_mem.write_byte(addr, self.gprf.read(insn.rs)[24:32])
 
             self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.SMIS:
+            assert(insn.si is not None)
+            assert(insn.sq_list is not None)
+            self.qotrf.set_sq_reg(insn.si, insn.sq_list)
+
+        elif insn.name == InsnName.SMIT:
+            assert(insn.ti is not None)
+            assert(insn.tq_list is not None)
+            self.qotrf.set_sq_reg(insn.ti, insn.tq_list)
+
+        elif insn.name == InsnName.BUNDLE:
+            assert(insn.op_tr_pair is not None)
 
         else:
             raise ValueError(

@@ -19,6 +19,9 @@ class InsnName(Enum):
     # one operand
     QWAIT = auto()  # one imm
     QWAITR = auto()  # one GPR
+    BUNDLE = auto()  # quantum bundles 1, op1 (s/t)reg1 | op2 (s/t)reg2
+    SMIS = auto()
+    SMIT = auto()
 
     # two operands
     # one src GPR, one dst GPR
@@ -80,7 +83,6 @@ class Instruction():
         self.rd = kwargs.pop('rd', None)
         self.rs = kwargs.pop('rs', None)
         self.rt = kwargs.pop('rt', None)
-        self.qi = kwargs.pop('qi', None)
         self.labels = kwargs.pop('labels', None)
         self.target_label = kwargs.pop('target_label', None)
         self.cmp_flag = kwargs.pop('cmp_flag', None)
@@ -88,6 +90,16 @@ class Instruction():
         # integer format.
         # the bit length should be checked when generating this instruction
         self.imm = kwargs.pop('imm', None)
+
+        # fields for smit/smit
+        self.qi = kwargs.pop('qi', None)
+        self.si = kwargs.pop('si', None)
+        self.ti = kwargs.pop('ti', None)
+        self.sq_list = kwargs.pop('sq_list', None)
+        self.tq_list = kwargs.pop('tq_list', None)
+
+        # use to store quantum bundles
+        self.op_tr_pair = []  # list of (operation, target reg) pairs
         logger.debug("constructed the instruction: " + self.__str__())
 
     def __str__(self):
