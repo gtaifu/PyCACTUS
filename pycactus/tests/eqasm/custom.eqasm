@@ -1,0 +1,25 @@
+ADD r1,  r0, r2
+SMIT t0, {(0, 1)}
+SMIS s0, {1, 3}
+ldi r9, 0x1001c
+ADDI r7, r0, 0
+ARRAY_0:
+CMP r7, r5
+NOP
+FBR LE, r8
+BNE r8, r1, ARRAY_0_END
+LDUI r9, r9, 0x0
+ADDI r9, r2, 0
+ADDI r10, r0, 2
+SW r10, 0(r9)
+ADDI r2, r2, 6
+SW r9, 0(r6)
+
+1, H s0
+2, H s1
+2, CZ t0
+2, H s1
+function_5_end:
+
+LDI r25, 0x1009e
+LDUI r25, r25, 0x0

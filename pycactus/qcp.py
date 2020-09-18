@@ -151,8 +151,8 @@ class Quantum_control_processor():
 
         elif insn.name == InsnName.FMR:
             assert(insn.rd is not None)
-            assert(insn.qi is not None)
-            self.write_gpr(insn.rd, self.msmt_result[insn.qi])
+            assert(insn.qs is not None)
+            self.write_gpr(insn.rd, self.msmt_result[insn.qs])
             self.pc += 1             # update the PC
 
         elif insn.name == InsnName.LDI:

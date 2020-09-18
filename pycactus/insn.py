@@ -17,8 +17,8 @@ class InsnName(Enum):
     STOP = auto()
 
     # one operand
-    QWAIT = auto()  # one imm
-    QWAITR = auto()  # one GPR
+    QWAIT = auto()  # qwait imm
+    QWAITR = auto()  # qwaitr rs
     BUNDLE = auto()  # quantum bundles 1, op1 (s/t)reg1 | op2 (s/t)reg2
     SMIS = auto()
     SMIT = auto()
@@ -32,7 +32,7 @@ class InsnName(Enum):
 
     BR = auto()   # BR <cmp_flag>, <label>
     FBR = auto()  # FBR <cmp_flag>, Rd
-    FMR = auto()  # FMR Rd, Qi
+    FMR = auto()  # fmr rd, qs
 
     LDI = auto()  # LDI Rd, Imm20
 
@@ -76,10 +76,11 @@ CMP_FLAG = {'ALWAYS': 0,
 
 
 class Instruction():
-    def __init__(self, **kwargs):
-        # self.insn_type = kwargs.pop('type', InsnType.UNDEFINED)
+    def __init__(self, name=InsnName.NOP, **kwargs):
+        logger.debug(
+            "constructing instruction: {} {}".format(name, str(kwargs)))
         self.labels = []  # labels pointing to this instruction
-        self.name = kwargs.pop('name', InsnName.NOP)
+        self.name = name
         self.rd = kwargs.pop('rd', None)
         self.rs = kwargs.pop('rs', None)
         self.rt = kwargs.pop('rt', None)
@@ -92,7 +93,7 @@ class Instruction():
         self.imm = kwargs.pop('imm', None)
 
         # fields for smit/smit
-        self.qi = kwargs.pop('qi', None)
+        self.qs = kwargs.pop('qi', None)
         self.si = kwargs.pop('si', None)
         self.ti = kwargs.pop('ti', None)
         self.sq_list = kwargs.pop('sq_list', None)
@@ -100,7 +101,7 @@ class Instruction():
 
         # use to store quantum bundles
         self.op_tr_pair = []  # list of (operation, target reg) pairs
-        logger.debug("constructed the instruction: " + self.__str__())
+        # logger.debug("constructed the instruction: " + self.__str__())
 
     def __str__(self):
         if self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
@@ -112,7 +113,10 @@ class Instruction():
 
         if self.name == InsnName.LDUI:
             return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
-
+        if self.name == InsnName.SMIS:
+            return "SMIS s{}, {}".format(self.si, self.sq_list)
+        if self.name == InsnName.SMIT:
+            return "SMIT t{}, {}".format(self.ti, self.tq_list)
         else:
             return "{}".format(self.name)
 

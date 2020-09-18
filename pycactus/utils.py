@@ -1,4 +1,5 @@
 import logging
+from logging import debug
 from logging.handlers import TimedRotatingFileHandler
 import sys
 import colorama as cm
@@ -11,9 +12,16 @@ cm.init()
 # Back: BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, RESET.
 # Style: DIM, NORMAL, BRIGHT, RESET_ALL
 
+debug_mode = True
+
 
 def pycactus_msg(arg, **kwargs):
     print(tc.colored(arg, 'green'), **kwargs)
+
+
+def pycactus_debug(arg, **kwargs):
+    if debug_mode:
+        print(tc.colored(arg, 'yellow'), **kwargs)
 
 
 def pycactus_err(arg, **kwargs):
