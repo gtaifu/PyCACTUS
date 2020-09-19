@@ -2,7 +2,7 @@ from enum import Enum, auto
 from pycactus.utils import *
 
 logger = get_logger(__file__)
-# logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class InsnType(Enum):
@@ -75,6 +75,21 @@ CMP_FLAG = {'ALWAYS': 0,
             }
 
 
+class Quantum_op():
+    def __init__(self, name='QNOP', **kwargs):
+        self.name = name
+        self.sreg = kwargs.pop('sreg', None)
+        self.treg = kwargs.pop('treg', None)
+
+    def __str__(self):
+        if self.sreg is not None:
+            return "QOP: [{} s{}]".format(self.name, self.sreg)
+        elif self.treg is not None:
+            return "QOP: [{} t{}]".format(self.name, self.treg)
+        else:
+            return self.name
+
+
 class Instruction():
     def __init__(self, name=InsnName.NOP, **kwargs):
         logger.debug(
@@ -100,8 +115,19 @@ class Instruction():
         self.tq_list = kwargs.pop('tq_list', None)
 
         # use to store quantum bundles
-        self.op_tr_pair = []  # list of (operation, target reg) pairs
-        # logger.debug("constructed the instruction: " + self.__str__())
+        self.bs = kwargs.pop('bs', 0)
+        if name == InsnName.BUNDLE:
+            # list of (operation, target reg) pairs
+            q_ops = kwargs.pop('q_ops', None)
+            if isinstance(q_ops, Quantum_op):
+                self.q_ops = [q_ops]
+            elif isinstance(q_ops, list):
+                assert(all(isinstance(q_op, Quantum_op) for q_op in q_ops))
+            else:
+                raise ValueError("Given q_ops ({}) is neither "
+                                 "Quantum_op nor list.".format(q_ops))
+
+            self.q_ops = q_ops
 
     def __str__(self):
         if self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
@@ -117,6 +143,13 @@ class Instruction():
             return "SMIS s{}, {}".format(self.si, self.sq_list)
         if self.name == InsnName.SMIT:
             return "SMIT t{}, {}".format(self.ti, self.tq_list)
+        if self.name == InsnName.SW or self.name == InsnName.SB:
+            return "{} r{}, {}(r{})".format(self.name, self.rs,
+                                            self.imm, self.rt)
+        if (self.name == InsnName.LB or self.name == InsnName.LW
+                or self.name == InsnName.LBU):
+            return "{} r{}, {}(r{})".format(self.name, self.rd,
+                                            self.imm, self.rt)
         else:
             return "{}".format(self.name)
 
