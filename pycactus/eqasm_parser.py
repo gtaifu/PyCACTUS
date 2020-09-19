@@ -200,25 +200,42 @@ lexer = lex.lex()
 
 
 def p_root(p):
-    '''root : insn_nop
-            | insn_stop
-            | insn_qwait
-            | insn_qwaitr
-            | insn_not
-            | insn_cmp
-            | insn_fmr
-            | insn_ldi
-            | insn_ldui
-            | insn_ld
-            | insn_st
-            | insn_br
-            | insn_fbr
-            | insn_bundle
-            | insn_rrr
-            | insn_smis
-            | insn_smit
+    '''root : individual_insns
     '''
     debug_p(p)
+    p[0] = p[1]
+
+
+def p_individual_insns(p):
+    '''individual_insns : individual_insn
+                        | individual_insns individual_insn
+    '''
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[1].append(p[2])
+        p[0] = p[1]
+
+
+def p_individual_insn(p):
+    '''individual_insn : insn_nop
+                       | insn_stop
+                       | insn_qwait
+                       | insn_qwaitr
+                       | insn_not
+                       | insn_cmp
+                       | insn_fmr
+                       | insn_ldi
+                       | insn_ldui
+                       | insn_ld
+                       | insn_st
+                       | insn_br
+                       | insn_fbr
+                       | insn_bundle
+                       | insn_rrr
+                       | insn_smis
+                       | insn_smit
+    '''
     p[0] = p[1]
 
 
@@ -370,13 +387,21 @@ def p_insn_smis(p):
 
 
 def p_insn_smit(p):
-    'insn_smit : SMIT t_reg COMMA t_mask'
+    'insn_smit : SMIT t_reg seen_SMIT COMMA t_mask'
 
-    debug_p(p)
     logger_yacc.info("processing smit...")
-    insn = Instruction(InsnName.SMIT, ti=p[2], tq_list=p[4])
+    insn = Instruction(InsnName.SMIT, ti=p[2], tq_list=p[5])
     p[0] = insn
+    starti, endi = p.lexspan(2)   # Start,end positions of right expression
+    pycactus_debug(
+        'starti: {}, endi: {}, symbol: {}'.format(starti, endi, p[2]))
     logger_yacc.info("Insn added: {}".format(p[0]))
+
+
+def p_seen_SMIT(p):
+    'seen_SMIT :'
+    pycactus_debug("what I have seen previously: {}".format(p[-1]))
+    return p[0]
 
 
 def p_r_reg(p):
@@ -397,13 +422,13 @@ def p_s_reg(p):
 def p_t_reg(p):
     't_reg : TREG'
     p[0] = p[1]
+    pycactus_debug('t_reg: {}'.format(p[0]))
 
 
 def p_single_qubit_list(p):
     '''single_qubit_list : INTEGER
                          | single_qubit_list COMMA INTEGER'''
 
-    debug_p(p)
     if (len(p) == 2):
         p[0] = [p[1]]
     else:
@@ -416,7 +441,6 @@ def p_single_qubit_list(p):
 def p_s_mask(p):
     's_mask : LBRACE single_qubit_list RBRACE'
 
-    debug_p(p)
     p[0] = p[2]
     logger_yacc.info("s_mask: {}".format(p[0]))
 
@@ -424,8 +448,8 @@ def p_s_mask(p):
 def p_qubit_pair(p):
     '''qubit_pair : LPAREN INTEGER COMMA INTEGER RPAREN'''
 
-    pycactus_debug('p_qubit_pair:', end='')
-    debug_p(p)
+    # pycactus_debug('p_qubit_pair:', end='')
+
     p[0] = (p[2], p[4])
     logger_yacc.debug("qubit_pair: {}".format(p[0]))
 
@@ -434,8 +458,8 @@ def p_two_qubit_list(p):
     '''two_qubit_list : qubit_pair
                       | two_qubit_list COMMA　qubit_pair
     '''
-    pycactus_debug('p_two_qubit_list:', end='')
-    debug_p(p)
+    # pycactus_debug('p_two_qubit_list:', end='')
+
     if (len(p) == 2):
         p[0] = [p[1]]
     else:
@@ -446,7 +470,7 @@ def p_two_qubit_list(p):
 
 def p_t_mask(p):
     't_mask : LBRACE two_qubit_list RBRACE'
-    debug_p(p)
+
     p[0] = p[2]
     logger_yacc.info("t_mask: {}".format(p[0]))
 
@@ -454,7 +478,7 @@ def p_t_mask(p):
 def p_imm(p):
     '''imm : INTEGER
     '''
-    debug_p(p)
+
     p[0] = p[1]
     logger_yacc.info("imm: {}".format(p[0]))
 
@@ -462,7 +486,6 @@ def p_imm(p):
 def p_label_decl(p):
     'label_decl : IDENTIFIER COLON'
 
-    debug_p(p)
     label = p[2]
     logger_yacc.info("found label: ", label)
     p[0] = label
@@ -471,7 +494,6 @@ def p_label_decl(p):
 def p_offset_to_label(p):
     'offset_to_label : IDENTIFIER'
 
-    debug_p(p)
     label = p[1]
     p[0] = label
     logger_yacc.info("target label: {}".format(label))
@@ -492,15 +514,15 @@ def p_cond(p):
             | COND_GEU
     '''
 
-    debug_p(p)
     p[0] = p[1]
     logger_yacc.info("condition: {}".format(p[0]))
 
-# def p_error(p):
-#     print("Syntax error in input!")
+
+def p_error(p):
+    print("Syntax error found: {}".format(p))
 
 
-start = 'insn_smit'
+start = 'root'
 parser = yacc.yacc(debug=True)
 
 eqasm_dir = pycactus_root_dir / 'tests' / 'eqasm'
@@ -524,5 +546,5 @@ data = custom_file.read_text()
 #     print(print_format.format(tok.type, tok.value, tok.lineno, tok.lexpos))
 
 
-result = parser.parse(data.lower())
+result = parser.parse(data.lower(), tracking=True)
 print(result)
