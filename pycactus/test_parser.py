@@ -1,7 +1,5 @@
 # todo: when is the correct moment to convert immediate value into positive or negative?
 # ------------------------------------------------------------
-import tempfile
-from pycactus.eqasm_lexer import Eqasm_lexer
 from pycactus.global_config import pycactus_root_dir
 from pathlib import Path
 import re
@@ -13,21 +11,16 @@ logger_yacc = get_logger('yacc')
 logger_yacc.setLevel(logging.INFO)
 
 
-class Eqasm_parser:
-    '''eQASM parser'''
+def debug_p(p):
+    for i in range(1, len(p), 1):
+        pycactus_debug('p[{}]: {}'.format(i, p[i]), end='  ')
+    pycactus_debug('')
 
-    def __init__(self, filename):
-        if filename is None:
-            filename = ""
-        self.lexer = Eqasm_lexer(filename)
-        self.tokens = self.lexer.tokens
-        self.parse_dir = tempfile.mkdtemp(prefix='pycactus')
-        # For yacc, also, write_tables = Bool and optimize = Bool
-        self.parser = yacc.yacc(module=self, debug=False,
-                                outputdir=self.parse_dir)
+# --------------------------- Parser -----------------------------------
 
-        self._instructions = []
-        self._label_addr = {}
+
+_instructions = []
+_label_addr = {}
 
 
 def p_root(p):
