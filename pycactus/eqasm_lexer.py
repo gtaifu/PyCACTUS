@@ -7,6 +7,29 @@ logger_lex.setLevel(logging.INFO)
 
 
 class Eqasm_lexer(object):
+    def __init__(self):
+        """Create a ply lexer."""
+        self.lexer = lex.lex(module=self, debug=False,
+                             errorlog=lex.NullLogger())
+        # self.filename = filename
+        self.lineno = 1
+
+        # if filename:
+        #     with open(filename, 'r') as ifile:
+        #         self.data = ifile.read()
+        #     self.lexer.input(self.data)
+
+    # must be defined for the lexer
+    def input(self, data):
+        """Set the input text data."""
+        self.lexer.input(data.lower())
+
+    # must be defined for the lexer
+    def token(self):
+        """Return the next token."""
+        ret = self.lexer.token()
+        return ret
+
     reserved = {
         'nop': 'NOP',
         'stop': 'STOP',
@@ -153,7 +176,9 @@ class Eqasm_lexer(object):
     def t_IDENTIFIER(self, t):
         r'[a-zA-Z_][a-zA-Z_0-9]*'
         # Check for reserved words
+        # print('found token: {}'.format(t.value))
         t.type = self.reserved.get(t.value, 'IDENTIFIER')
+        # print('token type: {}'.format(t.type))
         logger_lex.debug('lex: [{}: {}]'.format(t.type, t.value))
         return t
 
@@ -185,7 +210,7 @@ class Eqasm_lexer(object):
 
     # Test it output
     def test(self, data):
-        self.lexer.input(data)
+        self.lexer.input(data.lower())
         while True:
             tok = self.lexer.token()
             if not tok:

@@ -115,7 +115,7 @@ class Instruction():
         self.tq_list = kwargs.pop('tq_list', None)
 
         # use to store quantum bundles
-        self.bs = kwargs.pop('bs', 0)
+        self.pi = kwargs.pop('pi', 0)
         if name == InsnName.BUNDLE:
             # list of (operation, target reg) pairs
             q_ops = kwargs.pop('q_ops', None)
@@ -131,25 +131,47 @@ class Instruction():
 
     def __str__(self):
         if self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
-            return "{} r{}, r{}, r{}".format(three_reg_cl_insn[self.name], self.rd,
+            return "{} r{}, r{}, r{}".format(three_reg_cl_insn[self.name].upper(), self.rd,
                                              self.rs, self.rt)
 
         if self.name == InsnName.LDI:
             return "LDI r{}, {}".format(self.rd, self.imm)
 
-        if self.name == InsnName.LDUI:
+        elif self.name == InsnName.LDUI:
             return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
-        if self.name == InsnName.SMIS:
+
+        elif self.name == InsnName.SMIS:
             return "SMIS s{}, {}".format(self.si, self.sq_list)
-        if self.name == InsnName.SMIT:
+
+        elif self.name == InsnName.SMIT:
             return "SMIT t{}, {}".format(self.ti, self.tq_list)
-        if self.name == InsnName.SW or self.name == InsnName.SB:
-            return "{} r{}, {}(r{})".format(self.name, self.rs,
+
+        elif self.name == InsnName.SW or self.name == InsnName.SB:
+            return "{} r{}, {}(r{})".format(str(self.name)[-2:], self.rs,
                                             self.imm, self.rt)
-        if (self.name == InsnName.LB or self.name == InsnName.LW
+
+        elif (self.name == InsnName.LB or self.name == InsnName.LW
                 or self.name == InsnName.LBU):
             return "{} r{}, {}(r{})".format(self.name, self.rd,
                                             self.imm, self.rt)
+        elif (self.name == InsnName.BUNDLE):
+            return '{}, {}'.format(self.pi, ' | '.join([str(q_op) for q_op in self.q_ops]))
+
+        elif self.name == InsnName.NOP:
+            return 'NOP'
+
+        elif self.name == InsnName.STOP:
+            return 'STOP'
+
+        elif self.name == InsnName.FBR:  # FBR <cmp_flag>, Rd
+            return 'FBR {}, r{}'.format(self.cmp_flag, self.rd)
+
+        elif self.name == InsnName.CMP:  # CMP Rs, Rt
+            return 'CMP r{}, r{}'.format(self.rs, self.rt)
+
+        elif self.name == InsnName.BR:
+            return 'BR {}, {}'.format(self.cmp_flag.upper(), self.target_label)
+
         else:
             return "{}".format(self.name)
 

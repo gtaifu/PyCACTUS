@@ -28,9 +28,10 @@ def pycactus_err(arg, **kwargs):
     print(tc.colored(arg, 'red'), **kwargs)
 
 
+# FORMATTER = logging.Formatter(
+#     "%(asctime)s — %(name)s — %(levelname)s — %(message)s")
 FORMATTER = logging.Formatter(
-    "%(asctime)s — %(name)s — %(levelname)s — %(message)s")
-# LOG_FILE = "my_app.log"
+    "%(name)s - %(levelname)s - %(message)s")
 
 
 def get_console_handler():
@@ -39,18 +40,21 @@ def get_console_handler():
     return console_handler
 
 
-# def get_file_handler():
-#     file_handler = TimedRotatingFileHandler(LOG_FILE, when='midnight')
-#     file_handler.setFormatter(FORMATTER)
-#     return file_handler
+def get_file_handler(log_file):
+    file_handler = TimedRotatingFileHandler(log_file, when='midnight')
+    file_handler.setFormatter(FORMATTER)
+    return file_handler
 
 
-def get_logger(logger_name):
+def get_logger(logger_name, log_file=None):
     logger = logging.getLogger(logger_name)
     # better to have too much log than not enough
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(get_console_handler())
-    # logger.addHandler(get_file_handler())
+    if log_file is None:
+        logger.addHandler(get_console_handler())
+    else:
+        logger.addHandler(get_file_handler(log_file))
+
     # with this pattern, it's rarely necessary to propagate the error up to parent
     logger.propagate = False
     return logger
