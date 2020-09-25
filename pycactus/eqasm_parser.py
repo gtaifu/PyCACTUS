@@ -19,9 +19,9 @@ logger_yacc.setLevel(logging.ERROR)
 class Eqasm_parser:
     '''eQASM parser'''
 
-    def __init__(self, filename):
-        self.filename = Path(filename)
+    def __init__(self):
         self.lexer = Eqasm_lexer()
+        # print("lexer in parser is: ", self.lexer)
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='pycactus')
         # For yacc, also, write_tables = Bool and optimize = Bool
@@ -165,9 +165,19 @@ class Eqasm_parser:
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_ldui(self, p):  # ldui rd, rs, u_imm
-        'insn_ldui : LDUI r_reg COMMA r_reg COMMA imm'
+        '''insn_ldui : LDUI r_reg COMMA r_reg COMMA imm
+                     | LDUI r_reg COMMA imm
+        '''
+        if len(p) == 6:
+            rd = p[2]
+            rs = p[4]
+            imm = p[6]
+        else:
+            rd = rs = p[2]
+            imm = p[4]
 
-        p[0] = insn = Instruction(InsnName.LDUI, rd=p[2], rs=p[4], imm=p[6])
+        p[0] = insn = Instruction(InsnName.LDUI, rd=rd, rs=rs, imm=imm)
+
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
@@ -323,11 +333,9 @@ class Eqasm_parser:
     # ---------------------------------------------------------------------
     def p_qbs(self, p):
         '''qbs : optional_bs INTEGER COMMA
+               | optional_bs INTEGER
         '''
-        if len(p) == 4:
-            p[0] = p[2]
-        else:
-            p[0] = 1
+        p[0] = p[2]
 
     def p_optional_bs(self, p):
         '''optional_bs : empty
@@ -480,8 +488,25 @@ class Eqasm_parser:
         p[0] = p[1]
         logger_yacc.info("condition: {}".format(p[0]))
 
+    # def p_error(self, p):
+    #     col = self.find_column(self.lexer.data, p)
+    #     print("Error near line", str(self.lexer.lineno), 'Column', col)
+
     def p_error(self, p):
-        print("Syntax error found: {}".format(p))
+        p.lexpos = col = self.find_column(self.lexer.data, p)
+        print("Syntax error: Found unmatched {0}. Skip line {1} and continue ...".format(
+              p, str(self.lexer.lineno), col))
+        if not p:
+            print("End of File!")
+            return
+
+        # Read ahead looking for a new line
+        while True:
+            tok = self.lexer.token()             # Get the next token
+            if not tok or tok.type == 'NEWLINE':
+                break
+        self.parser.restart()
+
     # =================================================================================
     # end of the parser
     # =================================================================================
@@ -494,10 +519,8 @@ class Eqasm_parser:
         """
         if token is None:
             return 0
-        last_cr = input_.rfind('\n', 0, token.lexpos)
-        if last_cr < 0:
-            last_cr = 0
-        column = (token.lexpos - last_cr) + 1
+        last_line_end = input_.rfind('\n', 0, token.lexpos)
+        column = (token.lexpos - last_line_end)
         return column
 
     def read_tokens(self):
@@ -513,21 +536,12 @@ class Eqasm_parser:
         except Exception as e:
             print('Exception in tokenizing a eqasm file:', repr(e))
 
-    def parse(self, data=None, debug=False):
+    def parse(self, data=None, filename=None,  debug=False):
         """Parse some data."""
         if data is None:
-            data = self.filename.read_text()
+            data = Path(filename).read_text()
+
+        self._instructions = []
+        self._label_addr = {}
         self.parser.parse(data.lower(), lexer=self.lexer)
         return self._instructions
-
-
-# parser = yacc.yacc(debug=True)
-
-# eqasm_dir = pycactus_root_dir / 'tests' / 'eqasm'
-# custom_file = eqasm_dir / 'custom.eqasm'
-# # custom_file = eqasm_dir / 'smit.eqasm'
-# data = custom_file.read_text()
-
-# result = parser.parse(data.lower(), tracking=True)
-# logger_yacc.info("all labels: ", _label_addr)
-# # print(result)

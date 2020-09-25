@@ -1,9 +1,8 @@
-from logging import debug
-from pycactus import eqasm
 from pycactus.eqasm_parser import Eqasm_parser
 
-eqasm_parser = Eqasm_parser(
-    r'D:\GitHub\git_pcl\PyCACTUS\pycactus\tests\eqasm\custom.eqasm')
+eqasm_parser = Eqasm_parser()
 
-for insn in eqasm_parser.parse(debug=True):
+# r'D:\GitHub\git_pcl\PyCACTUS\pycactus\tests\eqasm\custom.eqasm'
+fn = r'D:\GitHub\git_pcl\PyCACTUS\pycactus\tests\eqasm\test_assembly.qisa'
+for insn in eqasm_parser.parse(filename=fn, debug=True):
     print(insn)

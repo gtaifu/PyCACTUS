@@ -1,9 +1,9 @@
 from bitstring import BitArray
-from pycactus.utils import *
-from pycactus.qotr import QOTRF
-from pycactus.insn import *
-from pycactus.gpr import *
-from pycactus.memory import Memory
+from .utils import *
+from .qotr import QOTRF
+from .insn import *
+from .gpr import *
+from .memory import Memory
 import pycactus.global_config as gc
 
 
@@ -20,28 +20,64 @@ class Quantum_control_processor():
         # operation target register files
         self.qotrf = QOTRF()
 
-        # instruction memory
-        self.insn_mem = []
-        self.label_addr = {}
         self.max_insn_num = gc.SIZE_INSN_MEM
+        self.start_addr = start_addr
 
         # data memory
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
+        self.reset()
 
+    def reset(self):
+        '''Completely reset the QCP state. Except the data memory, all memory is cleaned.
+        Should be used before uploading a new program.
+        '''
+        self.restart()
+        # instruction memory
+        self.insn_mem = []
+        self.label_addr = {}
+        # we do not need to reset the data memory
+
+    def restart(self):
+        '''Restart the program. All architectural states except the instruction memory
+        and data memory are reset to the initial state.
+        Should be used when restarting the same program.
+        '''
+        self.stop_bit = 0
+        self.cycle = 0
+        self.pc = self.start_addr
         # qubit measurement result
         self.msmt_result = [0] * gc.NUM_QUBIT
-
-        self.pc = start_addr
-        self.stop_bit = 0
-
         # comparison flags
         self.cmp_flags = [True] + [False] * (len(CMP_FLAG) - 1)
-
-        self.cycle = 0
 
     def dump_cmp_flags(self):
         for key in CMP_FLAG:
             print("{:>6}: {}".format(key, int(self.cmp_flags[CMP_FLAG[key]])))
+
+    def upload_program(self, insns):
+        assert(all(isinstance(insn, Instruction) for insn in insns))
+
+        if (len(insns) > self.max_insn_num):
+            raise ValueError("Given program has a length ({}) exceeds the allowed maximum"
+                             " number of instructions ({}).".format(len(insns), self.max_insn_num))
+
+        self.reset()
+        self.insn_mem = insns
+        self.parse_labels()
+
+    def parse_labels(self):
+        self.label_addr = {}
+        for i, insn in enumerate(self.insn_mem):
+            if insn.labels is not None and len(insn.labels) > 0:
+                for label in insn.labels:
+                    self.label_addr[label] = i
+
+        for insn in self.insn_mem:
+            if insn.name in [InsnName.BR, InsnName.FBR]:
+                if insn.target_label not in self.label_addr:
+                    raise ValueError("Given program is malformed. Cannot find the definition for "
+                                     "the target address label: {} in the instruction {}".format(
+                                         insn.target_label, insn))
 
     def append_insn(self, insn):
         self.insn_mem.append(insn)

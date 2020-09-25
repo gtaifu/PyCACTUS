@@ -11,18 +11,14 @@ class Eqasm_lexer(object):
         """Create a ply lexer."""
         self.lexer = lex.lex(module=self, debug=False,
                              errorlog=lex.NullLogger())
-        # self.filename = filename
-        self.lineno = 1
 
-        # if filename:
-        #     with open(filename, 'r') as ifile:
-        #         self.data = ifile.read()
-        #     self.lexer.input(self.data)
+        self.lineno = 1
 
     # must be defined for the lexer
     def input(self, data):
         """Set the input text data."""
-        self.lexer.input(data.lower())
+        self.data = data.lower()
+        self.lexer.input(self.data)
 
     # must be defined for the lexer
     def token(self):
@@ -35,7 +31,6 @@ class Eqasm_lexer(object):
         'stop': 'STOP',
         'qwait': 'QWAIT',
         'qwaitr': 'QWAITR',
-        'bundle': 'BUNDLE',
         'smis': 'SMIS',
         'smit': 'SMIT',
         'not': 'NOT',
@@ -184,9 +179,8 @@ class Eqasm_lexer(object):
 
     def t_NEWLINE(self, t):
         r'\n'
-        # logger_lex.debug(
-        #     'lex: ************************* newline *************************')
-        t.lexer.lineno += len(t.value)
+        self.lineno += len(t.value)
+        t.lexer.lineno = self.lineno
         return t
 
     # def t_eof(t):
@@ -196,13 +190,22 @@ class Eqasm_lexer(object):
     t_ignore = ' \t'
     t_ignore_COMMENT = r'\#.*'
 
-    # def find_column(self, input, token):
-    #     line_start = input.rfind('\n', 0, token.lexpos) + 1
-    #     return (token.lexpos - line_start) + 1
+    def find_column(self, token):
+        """Compute the column.
+
+        Input is the input text string.
+        token is a token instance.
+        """
+        if token is None:
+            return 0
+        last_line_end = self.data.rfind('\n', 0, token.lexpos)
+        column = (token.lexpos - last_line_end)
+        return column
 
     def t_error(self, t):
-        raise ValueError("Found illegal character '{}'".format(t.value[0]))
-        # t.lexer.skip(1)
+        print("Give string ({}) at (line {}, col {}) cannot match any token rule".format(
+            t.value[0], t.lexer.lineno, self.find_column(t)))
+        t.lexer.skip(1)
 
     def build(self, **kwargs):
         '''Build the lexer for eQASM'''
@@ -210,9 +213,10 @@ class Eqasm_lexer(object):
 
     # Test it output
     def test(self, data):
-        self.lexer.input(data.lower())
+        self.data = data.lower()
+        self.lexer.input(self.data)
         while True:
             tok = self.lexer.token()
             if not tok:
                 break
-            print(tok)
+            # print(tok)
