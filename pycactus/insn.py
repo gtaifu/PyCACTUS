@@ -94,12 +94,11 @@ class Instruction():
     def __init__(self, name=InsnName.NOP, **kwargs):
         logger.debug(
             "constructing instruction: {} {}".format(name, str(kwargs)))
-        self.labels = []  # labels pointing to this instruction
         self.name = name
         self.rd = kwargs.pop('rd', None)
         self.rs = kwargs.pop('rs', None)
         self.rt = kwargs.pop('rt', None)
-        self.labels = kwargs.pop('labels', None)
+        self.labels = kwargs.pop('labels', [])
         self.target_label = kwargs.pop('target_label', None)
         self.cmp_flag = kwargs.pop('cmp_flag', None)
 
@@ -108,7 +107,7 @@ class Instruction():
         self.imm = kwargs.pop('imm', None)
 
         # fields for smit/smit
-        self.qs = kwargs.pop('qi', None)
+        self.qs = kwargs.pop('qs', None)
         self.si = kwargs.pop('si', None)
         self.ti = kwargs.pop('ti', None)
         self.sq_list = kwargs.pop('sq_list', None)
@@ -130,21 +129,55 @@ class Instruction():
             self.q_ops = q_ops
 
     def __str__(self):
-        if self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
-            return "{} r{}, r{}, r{}".format(three_reg_cl_insn[self.name].upper(), self.rd,
-                                             self.rs, self.rt)
+        str_labels = " ".join([label + ': ' for label in self.labels])
+        return str_labels + self.insn_str()
 
-        if self.name == InsnName.LDI:
-            return "LDI r{}, {}".format(self.rd, self.imm)
+    def insn_str(self):
+        if self.name == InsnName.NOP:
+            return 'NOP'
 
-        elif self.name == InsnName.LDUI:
-            return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
+        elif self.name == InsnName.STOP:
+            return 'STOP'
+
+        elif self.name == InsnName.QWAIT:
+            return "QWAIT {}".format(self.imm)
+        elif self.name == InsnName.QWAITR:
+            return "QWAITR r{}".format(self.rs)
+
+        elif (self.name == InsnName.BUNDLE):
+            return '{}, {}'.format(self.pi, ' | '.join([str(q_op) for q_op in self.q_ops]))
 
         elif self.name == InsnName.SMIS:
             return "SMIS s{}, {}".format(self.si, self.sq_list)
 
         elif self.name == InsnName.SMIT:
             return "SMIT t{}, {}".format(self.ti, self.tq_list)
+
+        elif self.name == InsnName.NOT:
+            return 'NOT r{}, r{}'.format(self.rd, self.rt)
+
+        elif self.name == InsnName.CMP:  # CMP Rs, Rt
+            return 'CMP r{}, r{}'.format(self.rs, self.rt)
+
+        elif self.name == InsnName.BR:
+            return 'BR {}, {}'.format(self.cmp_flag.upper(), self.target_label)
+
+        elif self.name == InsnName.FBR:  # FBR <cmp_flag>, Rd
+            print('rd type: ', type(self.rd))
+            return 'FBR {}, r{}'.format(self.cmp_flag.upper(), self.rd)
+
+        elif self.name == InsnName.FMR:  # FMR rd, qs
+            return 'FMR r{}, q{}'.format(self.rd, self.qs)
+
+        elif self.name == InsnName.LDI:
+            return "LDI r{}, {}".format(self.rd, self.imm)
+
+        elif self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
+            return "{} r{}, r{}, r{}".format(three_reg_cl_insn[self.name].upper(), self.rd,
+                                             self.rs, self.rt)
+
+        elif self.name == InsnName.LDUI:
+            return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
 
         elif self.name == InsnName.SW or self.name == InsnName.SB:
             return "{} r{}, {}(r{})".format(str(self.name)[-2:], self.rs,
@@ -154,23 +187,6 @@ class Instruction():
                 or self.name == InsnName.LBU):
             return "{} r{}, {}(r{})".format(self.name, self.rd,
                                             self.imm, self.rt)
-        elif (self.name == InsnName.BUNDLE):
-            return '{}, {}'.format(self.pi, ' | '.join([str(q_op) for q_op in self.q_ops]))
-
-        elif self.name == InsnName.NOP:
-            return 'NOP'
-
-        elif self.name == InsnName.STOP:
-            return 'STOP'
-
-        elif self.name == InsnName.FBR:  # FBR <cmp_flag>, Rd
-            return 'FBR {}, r{}'.format(self.cmp_flag, self.rd)
-
-        elif self.name == InsnName.CMP:  # CMP Rs, Rt
-            return 'CMP r{}, r{}'.format(self.rs, self.rt)
-
-        elif self.name == InsnName.BR:
-            return 'BR {}, {}'.format(self.cmp_flag.upper(), self.target_label)
 
         else:
             return "{}".format(self.name)

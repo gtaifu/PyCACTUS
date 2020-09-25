@@ -68,9 +68,8 @@ class Quantum_control_processor():
     def parse_labels(self):
         self.label_addr = {}
         for i, insn in enumerate(self.insn_mem):
-            if insn.labels is not None and len(insn.labels) > 0:
-                for label in insn.labels:
-                    self.label_addr[label] = i
+            for label in insn.labels:
+                self.label_addr[label] = i
 
         for insn in self.insn_mem:
             if insn.name in [InsnName.BR, InsnName.FBR]:
@@ -82,13 +81,12 @@ class Quantum_control_processor():
     def append_insn(self, insn):
         self.insn_mem.append(insn)
 
-        if insn.labels is not None:
-            for label in insn.labels:
-                if label in self.label_addr:
-                    raise ValueError(
-                        "Found multiple definitions for the same label ({})".format(label))
+        for label in insn.labels:
+            if label in self.label_addr:
+                raise ValueError(
+                    "Found multiple definitions for the same label ({})".format(label))
 
-                self.label_addr[label] = len(self.insn_mem) - 1
+            self.label_addr[label] = len(self.insn_mem) - 1
 
         logger.debug("insn mem size: {}.".format(len(self.insn_mem)))
 

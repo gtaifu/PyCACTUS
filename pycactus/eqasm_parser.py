@@ -218,7 +218,7 @@ class Eqasm_parser:
     def p_insn_br(self, p):
         'insn_br : BR cond COMMA offset_to_label'
         insn = Instruction(InsnName.BR, cmp_flag=p[2],
-                           target_label=p[2])
+                           target_label=p[4])
         self._instructions.append(insn)
         p[0] = insn
 
@@ -270,7 +270,7 @@ class Eqasm_parser:
 
     def p_insn_fbr(self, p):
         'insn_fbr : FBR cond COMMA r_reg'
-        insn = Instruction(InsnName.FBR, cmp_flag=p[2], rd=[4])
+        insn = Instruction(InsnName.FBR, cmp_flag=p[2], rd=p[4])
         self._instructions.append(insn)
         p[0] = insn
 
@@ -544,4 +544,8 @@ class Eqasm_parser:
         self._instructions = []
         self._label_addr = {}
         self.parser.parse(data.lower(), lexer=self.lexer)
+
+        for l in self._label_addr:
+            self._instructions[self._label_addr[l]].labels.append(l)
+
         return self._instructions

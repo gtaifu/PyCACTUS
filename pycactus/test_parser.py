@@ -1,4 +1,5 @@
-# todo: when is the correct moment to convert immediate value into positive or negative?
+# TODO: add definition def_sym and .register
+# TODO: when is the correct moment to convert immediate value into positive or negative?
 # ------------------------------------------------------------
 from pycactus.global_config import pycactus_root_dir
 from pathlib import Path
@@ -45,8 +46,6 @@ def p_program(p):
             p[1].append(p[2])
         p[0] = p[1]
     logger_yacc.info("program, _label_addr: {}".format(_label_addr))
-
-# TODO: add definition def_sym and .register
 
 
 def p_instruction(p):
