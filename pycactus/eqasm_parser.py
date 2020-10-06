@@ -225,7 +225,7 @@ class Eqasm_parser:
     def p_insn_bra(self, p):
         '''insn_bra : BRA offset_to_label
         '''
-        insn = Instruction(InsnName.BR, cmp_flag='ALWAYS',
+        insn = Instruction(InsnName.BR, cmp_flag='always',
                            target_label=p[2])
         self._instructions.append(insn)
         p[0] = insn
@@ -235,7 +235,7 @@ class Eqasm_parser:
     def p_insn_goto(self, p):
         '''insn_goto : GOTO offset_to_label
         '''
-        p[0] = insn = Instruction(InsnName.BR, cmp_flag='ALWAYS',
+        p[0] = insn = Instruction(InsnName.BR, cmp_flag='always',
                                   target_label=p[2])
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
@@ -243,7 +243,7 @@ class Eqasm_parser:
     def p_insn_brn(self, p):
         '''insn_brn : BRN offset_to_label
         '''
-        p[0] = insn = Instruction(InsnName.BR, cmp_flag='NEVER',
+        p[0] = insn = Instruction(InsnName.BR, cmp_flag='never',
                                   target_label=p[2])
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))

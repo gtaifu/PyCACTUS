@@ -30,12 +30,14 @@ class Quantum_control_processor():
     def reset(self):
         '''Completely reset the QCP state. Except the data memory, all memory is cleaned.
         Should be used before uploading a new program.
+
+        N.B.: we do not need to reset the data memory during the reset process.
         '''
         self.restart()
         # instruction memory
         self.insn_mem = []
         self.label_addr = {}
-        # we do not need to reset the data memory
+        # self.num_iteration = 0  # used for debug. TODO: remove after passing the test
 
     def restart(self):
         '''Restart the program. All architectural states except the instruction memory
@@ -72,7 +74,7 @@ class Quantum_control_processor():
                 self.label_addr[label] = i
 
         for insn in self.insn_mem:
-            if insn.name in [InsnName.BR, InsnName.FBR]:
+            if insn.name in [InsnName.BR]:
                 if insn.target_label not in self.label_addr:
                     raise ValueError("Given program is malformed. Cannot find the definition for "
                                      "the target address label: {} in the instruction {}".format(
@@ -147,25 +149,25 @@ class Quantum_control_processor():
         elif insn.name == InsnName.CMP:
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.cmp_flags[CMP_FLAG['EQ']] = (
+            self.cmp_flags[CMP_FLAG['eq']] = (
                 self.gprf[insn.rs] == self.gprf[insn.rt])
-            self.cmp_flags[CMP_FLAG['NE']] = (
+            self.cmp_flags[CMP_FLAG['ne']] = (
                 self.gprf[insn.rs] != self.gprf[insn.rt])
-            self.cmp_flags[CMP_FLAG['LTU']] = (
+            self.cmp_flags[CMP_FLAG['ltu']] = (
                 self.read_gpr_unsigned(insn.rs) < self.read_gpr_unsigned(insn.rt))
-            self.cmp_flags[CMP_FLAG['GEU']] = (
+            self.cmp_flags[CMP_FLAG['geu']] = (
                 self.read_gpr_unsigned(insn.rs) >= self.read_gpr_unsigned(insn.rt))
-            self.cmp_flags[CMP_FLAG['LEU']] = (
+            self.cmp_flags[CMP_FLAG['leu']] = (
                 self.read_gpr_unsigned(insn.rs) <= self.read_gpr_unsigned(insn.rt))
-            self.cmp_flags[CMP_FLAG['GTU']] = (
+            self.cmp_flags[CMP_FLAG['gtu']] = (
                 self.read_gpr_unsigned(insn.rs) > self.read_gpr_unsigned(insn.rt))
-            self.cmp_flags[CMP_FLAG['LT']] = (
+            self.cmp_flags[CMP_FLAG['lt']] = (
                 self.read_gpr_signed(insn.rs) < self.read_gpr_signed(insn.rt))
-            self.cmp_flags[CMP_FLAG['GE']] = (
+            self.cmp_flags[CMP_FLAG['ge']] = (
                 self.read_gpr_signed(insn.rs) >= self.read_gpr_signed(insn.rt))
-            self.cmp_flags[CMP_FLAG['LE']] = (
+            self.cmp_flags[CMP_FLAG['le']] = (
                 self.read_gpr_signed(insn.rs) <= self.read_gpr_signed(insn.rt))
-            self.cmp_flags[CMP_FLAG['GT']] = (
+            self.cmp_flags[CMP_FLAG['gt']] = (
                 self.read_gpr_signed(insn.rs) > self.read_gpr_signed(insn.rt))
 
             self.pc += 1             # update the PC
@@ -173,9 +175,21 @@ class Quantum_control_processor():
         elif insn.name == InsnName.BR:
             assert(insn.cmp_flag is not None)
             assert(insn.target_label is not None)
+
+            # self.num_iteration += 1
+            # if self.num_iteration > 100:
+            #     print('The number of iteration has exceeded the maximum allowed number.')
+            #     exit(0)
+            # print("current flag: ", insn.cmp_flag.upper())
+            # print("self.label_addr[insn.target_label]: ",
+            #       self.label_addr[insn.target_label])
+
             if self.cmp_flags[CMP_FLAG[insn.cmp_flag]]:
+                print("current PC: ", self.pc)
                 self.pc = self.label_addr[insn.target_label]
                 print("next pc: ", self.pc)
+            else:
+                self.pc += 1
 
         elif insn.name == InsnName.FBR:
             assert(insn.rd is not None)
@@ -310,14 +324,17 @@ class Quantum_control_processor():
             assert(insn.si is not None)
             assert(insn.sq_list is not None)
             self.qotrf.set_sq_reg(insn.si, insn.sq_list)
+            self.pc += 1             # update the PC
 
         elif insn.name == InsnName.SMIT:
             assert(insn.ti is not None)
             assert(insn.tq_list is not None)
-            self.qotrf.set_sq_reg(insn.ti, insn.tq_list)
+            self.qotrf.set_tq_reg(insn.ti, insn.tq_list)
+            self.pc += 1             # update the PC
 
         elif insn.name == InsnName.BUNDLE:
             assert(insn.op_tr_pair is not None)
+            raise NotImplementedError("Bundle is not supported yet.")
 
         else:
             raise ValueError(

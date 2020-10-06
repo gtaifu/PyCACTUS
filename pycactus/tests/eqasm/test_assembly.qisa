@@ -1,6 +1,5 @@
                   NOP
 
-                  STOP
 
                   SUB        r4, r5, r6
 
@@ -85,3 +84,5 @@ cw_10 s2
 
 # Implicit quantum cycle wait specification (1), multi-instruction bundle.
 cw_12 s5 | CNOT t3 | SWAP t4
+
+STOP

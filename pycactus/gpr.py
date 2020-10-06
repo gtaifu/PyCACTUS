@@ -77,6 +77,9 @@ class General_purpose_register():
         self.check_length(other)
         return self.bitstring != other.bitstring
 
+    def __getitem__(self, item):
+        return self.bitstring[item]
+
     def update_value(self, value: BitArray):
         '''Update the value of this register to `value`.
         Args:

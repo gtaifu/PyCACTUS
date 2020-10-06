@@ -60,18 +60,18 @@ three_reg_cl_insn = {
     InsnName.XOR: "xor"
 }
 
-CMP_FLAG = {'ALWAYS': 0,
-            'NEVER': 1,
-            'EQ': 2,
-            'NE': 3,
-            'LTU': 4,
-            'GEU': 5,
-            'LEU': 6,
-            'GTU': 7,
-            'LT': 8,
-            'GE': 9,
-            'LE': 10,
-            'GT': 11
+CMP_FLAG = {'always': 0,
+            'never': 1,
+            'eq': 2,
+            'ne': 3,
+            'ltu': 4,
+            'geu': 5,
+            'leu': 6,
+            'gtu': 7,
+            'lt': 8,
+            'ge': 9,
+            'le': 10,
+            'gt': 11
             }
 
 
