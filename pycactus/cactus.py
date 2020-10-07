@@ -15,7 +15,12 @@ class Py_cactus(If_backend):
         self.eqasm_parser = Eqasm_parser()
 
     def upload_program(self, prog_fn):
-        insns = self.eqasm_parser.parse(filename=prog_fn, debug=True)
+        success, insns = self.eqasm_parser.parse(filename=prog_fn, debug=True)
+        if not success:
+            print("Errors in the eqasm file {} and stopping program"
+                  " uploading.".format(prog_fn))
+            exit(-1)
+
         self.qcp.upload_program(insns)
 
     def execute(self):

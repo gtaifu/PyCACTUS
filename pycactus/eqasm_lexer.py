@@ -203,7 +203,7 @@ class Eqasm_lexer(object):
         return column
 
     def t_error(self, t):
-        print("Give string ({}) at (line {}, col {}) cannot match any token rule".format(
+        raise ValueError("Give string ({}) at (line {}, col {}) cannot match any token rule".format(
             t.value[0], t.lexer.lineno, self.find_column(t)))
         t.lexer.skip(1)
 

@@ -3,6 +3,7 @@
 
 # ------------------------------------------------------------
 import logging
+from logging import error
 import tempfile
 from pycactus.eqasm_lexer import Eqasm_lexer
 from pycactus.global_config import pycactus_root_dir
@@ -494,8 +495,11 @@ class Eqasm_parser:
 
     def p_error(self, p):
         p.lexpos = col = self.find_column(self.lexer.data, p)
-        print("Syntax error: Found unmatched {0}. Skip line {1} and continue ...".format(
-              p, str(self.lexer.lineno), col))
+        error_msg = "Syntax error: Found unmatched {0}. Skip line {1} and continue ...".format(
+            p, str(self.lexer.lineno), col)
+        self.error_list.append(error_msg)
+        logger_yacc.error(error_msg)
+
         if not p:
             print("End of File!")
             return
@@ -542,10 +546,20 @@ class Eqasm_parser:
             data = Path(filename).read_text()
 
         self._instructions = []
+        self.error_list = []
         self._label_addr = {}
         self.parser.parse(data.lower(), lexer=self.lexer)
 
         for l in self._label_addr:
             self._instructions[self._label_addr[l]].labels.append(l)
 
-        return self._instructions
+        success = True
+        if len(self.error_list) > 0:
+            for e in self.error_list:
+                logger_yacc.error(e)
+
+            error_msgs = "\n".join(self.error_list)
+            print("Found errors in parsing the eqasm file: {}".format(error_msgs))
+            success = False
+
+        return success, self._instructions
