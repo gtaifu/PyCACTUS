@@ -6,6 +6,7 @@ from .gpr import *
 from .memory import Memory
 import pycactus.global_config as gc
 
+from .quantumsim.interface import interface_quantumsim
 
 logger = get_logger(__file__)
 # logger.setLevel(logging.DEBUG)
@@ -26,6 +27,8 @@ class Quantum_control_processor():
         # data memory
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
         self.reset()
+
+        self.simulator = interface_quantumsim()
 
     def reset(self):
         '''Completely reset the QCP state. Except the data memory, all memory is cleaned.

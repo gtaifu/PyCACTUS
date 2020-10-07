@@ -9,19 +9,25 @@ class Py_cactus(If_backend):
         """
         Top module of the python-version cactus.
         """
+        super.__init__('pycactus_quantumsim')
         self.qcp = Quantum_control_processor()
 
-        # can we remove this file name?
         self.eqasm_parser = Eqasm_parser()
+
+    def available(self):
+        return True
 
     def upload_program(self, prog_fn):
         success, insns = self.eqasm_parser.parse(filename=prog_fn, debug=True)
         if not success:
             print("Errors in the eqasm file {} and stopping program"
-                  " uploading.".format(prog_fn))
+                  " uploading. Exit.".format(prog_fn))
             exit(-1)
 
         self.qcp.upload_program(insns)
 
     def execute(self):
         self.qcp.run()
+
+    def read_result(self):
+        raise NotImplementedError
