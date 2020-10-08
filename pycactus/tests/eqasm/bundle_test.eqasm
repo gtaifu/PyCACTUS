@@ -1,0 +1,12 @@
+smis s0, {0}
+smis s1, {1}
+smis s2, {0, 1}
+smit t0, {(0, 1)}
+H s0
+H s1
+CZ t0
+H s1
+MeasZ s2
+FMR r0, q0
+FMR r1, q1
+stop

@@ -2,7 +2,7 @@ from bitstring import BitArray
 import pycactus.global_config as gc
 from pycactus.utils import get_logger
 
-logger = get_logger(__file__)
+logger = get_logger((__name__).split('.')[-1])
 
 
 class General_purpose_register():

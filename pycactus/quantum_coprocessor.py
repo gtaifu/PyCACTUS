@@ -2,16 +2,18 @@
 from .eqasm_parser import Eqasm_parser
 from .qcp import Quantum_control_processor
 from qgrtsys.if_backend.if_backend import If_backend
+from .qubit_state_sim.quantumsim import Quantumsim
+from .global_config import NUM_QUBIT
 
 
-class Py_cactus(If_backend):
+class Quantum_coprocessor(If_backend):
     def __init__(self):
         """
         Top module of the python-version cactus.
         """
-        super.__init__('pycactus_quantumsim')
-        self.qcp = Quantum_control_processor()
-
+        super().__init__('pycactus_quantumsim')
+        self.qubit_sim = Quantumsim(NUM_QUBIT)
+        self.qcp = Quantum_control_processor(self.qubit_sim)
         self.eqasm_parser = Eqasm_parser()
 
     def available(self):

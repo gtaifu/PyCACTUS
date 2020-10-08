@@ -1,23 +1,13 @@
 import numpy as np
+from pycactus.utils import get_logger
 import logging
 from quantumsim.sparsedm import *
 from quantumsim.circuit import *
 from quantumsim.ptm import *
 import random
-# import sys
 
-# FORMATTER = logging.Formatter("%(asctime)s — %(name)s — %(levelname)s — %(message)s")
-
-# def get_console_handler():
-#   console_handler = logging.StreamHandler(sys.stdout)
-#   console_handler.setFormatter(FORMATTER)
-#   return console_handler
-
-log = logging.getLogger(__name__)
-
-# log.setLevel(logging.DEBUG)
-# log.addHandler(get_console_handler())
-#log.propagate = False
+log = get_logger((__name__).split('.')[-1])
+log.setLevel(logging.WARNING)
 
 round_precision = 4
 
@@ -69,16 +59,12 @@ class interface_quantumsim:
 
         self.num_qubit = num_qubit
 
-        qubit_names = []
-        for i in range(0, num_qubit):
-            qubit_names.append(str(i))
-
-        self.sdm = SparseDM(qubit_names)
+        self.sdm = SparseDM(self.num_qubit)
 
         for i in range(0, num_qubit):
-            self.measurements[str(i)] = []
+            self.measurements[i] = []
 
-        log.info("QuantumSim: the density matrix has been initialized successfully.")
+        log.info("The density matrix has been initialized successfully.")
 
     def extract_angle_from_op_name(self, name):
         pass
@@ -103,14 +89,12 @@ class interface_quantumsim:
         elif axis == 'z':
             self.ptm = rotate_y_ptm(angle*np.pi/180)
         else:
-            log.error("QuantumSim: undefined axis found: {}".format(axis))
+            log.error("Found undefined axis: {}".format(axis))
 
     def prepare_ptm(self, quantum_operation):
         angle = 0
         # gates of eQASM use '_' to replace decimal point, convert it back now
         quantum_operation = quantum_operation.lower().replace('_', '.').strip('r')
-        log.debug("QuantumSim: prepare a PTM for operation %s",
-                  quantum_operation)
 
         if quantum_operation == "h":
             self.ptm = hadamard_ptm()
@@ -149,13 +133,12 @@ class interface_quantumsim:
         else:
             self.ptm = []
 
-        #log.debug(self.ptm, end="\n\n")
-        log.debug(self.ptm)
+        log.debug("PTM preprared for operation {}: \n\t{}".format(
+            quantum_operation, "{}".format(self.ptm.round(round_precision)).replace('\n', '\n\t')))
 
     def apply_ptm(self, bit):
-        log.debug("The following PTM is applied on qubit %s:", bit)
-        #log.debug(self.ptm.round(round_precision), end="\n\n")
-        log.debug(self.ptm.round(round_precision))
+        log.debug("The following PTM is applied on qubit {}:\n\t{}".format(
+            bit, "{}".format(self.ptm.round(round_precision)).replace('\n', '\n\t')))
         self.sdm.apply_ptm(bit, self.ptm)
 
     def apply_mock_meas(self, fn: str):
@@ -163,17 +146,14 @@ class interface_quantumsim:
 
     def apply_measurement(self, bit):
 
-        log.debug("QuantumSim: prepare to measure qubit %s", bit)
+        log.debug("Prepare to measure qubit %s", bit)
 
         # Apply pending ptms
         self.sdm.combine_and_apply_single_ptm(bit)
         # self.apply_all_pending()
 
-        log.debug("The full density matrix before applying measurement:")
-        #log.debug(self.sdm.full_dm.to_array().round(
-            #round_precision), end="\n\n")
-        log.debug(self.sdm.full_dm.to_array().round(
-            round_precision))
+        log.debug("The full density matrix before applying measurement: \n\t{}".format(
+            "{}".format(self.sdm.full_dm.to_array().round(round_precision)).replace('\n', '\n\t')))
 
         # Obtain the two partial traces (p0, p1) that define the probabilities
         # for measuring bit in state (0, 1)
@@ -216,14 +196,13 @@ class interface_quantumsim:
     # For superconducting qubits, the only two-qubit operation is cphase.
     # Currently the two-qubit ptm is set to default cphase ptm in the backend.
     def prepare_two_ptm(self):
-        log.debug("QuantumSim: operation to apply: CZ")
+        log.debug("Operation to apply: CZ")
 
         self.ptm = self.sdm._cphase_ptm
 
     def apply_two_ptm(self, bit0, bit1):
 
-        log.debug("QuantumSim: CZ applied on qubit {} and {}.".format(
-            bit0, bit1))
+        log.debug("CZ applied on qubit {} and {}.".format(bit0, bit1))
 
         self.sdm.apply_two_ptm(bit0, bit1, self.ptm)
 
@@ -246,11 +225,10 @@ class interface_quantumsim:
             self.ptm = amp_ph_damping_ptm(0, 0)
 
     def print_classical_state(self):
-        log.info("classical state: ")
+        cls_state_str = 'classical state:'
         for i in range(0, self.sdm.no_qubits):
-            #log.debug("q%d: %d", i, self.sdm.classical[str(i)], end=" ")
-            log.debug("q%d: %d", i, self.sdm.classical[str(i)])
-        log.debug("")
+            cls_state_str += "\nq{}: {}".format(i, self.sdm.classical[i])
+        log.info(cls_state_str.replace('\n', '\n\t'))
 
     def print_ptm_to_do(self, qubit_name):
         """
@@ -281,22 +259,12 @@ class interface_quantumsim:
         str_out = str_out + '+' + '-' * 77 + '+\n'
         log.debug(str_out)
 
-        # TODO: reformat the following code to dump the correct measurement result
-        # str_out = '\n+' + '-' * 20 + \
-        #     "The measurement results of all qubits are:" + '-' * 20 + '+'
-        # for i in range(0, self.num_qubit):
-        #     print("\nThe measurement results of qubit", i, "are:")
-        #     lines = round(len(self.measurements[str(i)])/30) + 1
-        #     for j in range(0, lines):
-        #         print((self.measurements[str(i)][j * 30:(j + 1) * 30]))
-        # print('+', '-' * 77, '+\n')
-
     def record_msmt_results(self):
         f = open("qvm_msmt_result.txt", "w+")
 
         for i in range(0, self.num_qubit):
             f.write("\nThe measurement results of qubit " + str(i) + " are: ")
-            for j in range(0, len(self.measurements[str(i)])):
-                f.write(str(self.measurements[str(i)][j]) + ", ")
+            for j in range(0, len(self.measurements[i])):
+                f.write(str(self.measurements[i][j]) + ", ")
 
         f.close()

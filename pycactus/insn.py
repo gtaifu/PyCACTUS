@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from pycactus.utils import *
 
-logger = get_logger(__file__)
+logger = get_logger((__name__).split('.')[-1])
 logger.setLevel(logging.INFO)
 
 

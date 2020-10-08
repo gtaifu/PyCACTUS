@@ -5,15 +5,17 @@ from .insn import *
 from .gpr import *
 from .memory import Memory
 import pycactus.global_config as gc
+from .qubit_state_sim.if_qubit_sim import If_qubit_sim
 
-from .quantumsim.interface import interface_quantumsim
-
-logger = get_logger(__file__)
-# logger.setLevel(logging.DEBUG)
+logger = get_logger((__name__).split('.')[-1])
+logger.setLevel(logging.INFO)
 
 
 class Quantum_control_processor():
-    def __init__(self, start_addr=0):
+    def __init__(self, qubit_state_sim, start_addr=0):
+        # assert(isinstance(qubit_state_sim, If_qubit_sim))
+
+        self.qubit_state_sim = qubit_state_sim
 
         self.gprf = GPRF()  # general purpose register file
         self.fprf = None    # floating point register file
@@ -21,14 +23,15 @@ class Quantum_control_processor():
         # operation target register files
         self.qotrf = QOTRF()
 
+        # measurement result register
+        self.msmt_result = [0] * gc.NUM_QUBIT
+
         self.max_insn_num = gc.SIZE_INSN_MEM
         self.start_addr = start_addr
 
         # data memory
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
         self.reset()
-
-        self.simulator = interface_quantumsim()
 
     def reset(self):
         '''Completely reset the QCP state. Except the data memory, all memory is cleaned.
@@ -125,7 +128,6 @@ class Quantum_control_processor():
             self.advance_one_cycle()
 
     def process_insn(self, insn):
-        print("cycle {}: {}".format(self.cycle, insn))
         # ------------------------- no operand -------------------------
         if insn.name == InsnName.STOP:
             self.stop_bit = 1
@@ -336,8 +338,37 @@ class Quantum_control_processor():
             self.pc += 1             # update the PC
 
         elif insn.name == InsnName.BUNDLE:
-            assert(insn.op_tr_pair is not None)
-            raise NotImplementedError("Bundle is not supported yet.")
+            assert(insn.q_ops is not None)
+            for qop in insn.q_ops:
+                op_name = qop.name
+
+                if qop.sreg is not None:
+                    target_qubit_list = self.qotrf.read_sq_reg(qop.sreg)
+
+                    logger.info(
+                        "single-qubit operation: {} {}".format(op_name, target_qubit_list))
+
+                    for qubit in target_qubit_list:
+                        if op_name.lower() in ['measure', 'measz']:
+                            self.msmt_result[qubit] = self.qubit_state_sim.measure_qubit(
+                                qubit)
+                        else:
+                            self.qubit_state_sim.apply_single_qubit_gate(
+                                op_name, qubit)
+
+                elif qop.treg is not None:
+                    # currently only support CZ operation
+                    assert(op_name.lower() == 'cz')
+                    target_qubit_pairs = self.qotrf.read_tq_reg(qop.treg)
+
+                    logger.info(
+                        "two-qubit operation: CZ {}".format(target_qubit_pairs))
+
+                    for pair in target_qubit_pairs:
+                        self.qubit_state_sim.apply_two_qubit_gate(
+                            pair[0], pair[1])
+
+            self.pc += 1
 
         else:
             raise ValueError(
