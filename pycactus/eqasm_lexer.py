@@ -76,6 +76,17 @@ class Eqasm_lexer(object):
         'bleu': 'BLEU',
         'bgtu': 'BGTU',
         'bgeu': 'BGEU',
+        'fcvt.w.s': 'FCVT.W.S',
+        'fcvt.s.w': 'FCVT.S.W',
+        'flw': 'FLW',
+        'fsw': 'FSW',
+        'fadd.s': 'FADD.S',
+        'fsub.s': 'FSUB.S',
+        'fmul.s': 'FMUL.S',
+        'fdiv.s': 'FDIV.S',
+        'feq.s': 'FEQ.S',
+        'flt.s': 'FLT.S',
+        'fle.s': 'FLE.S',
         'qnop': 'QNOP',
         'bs': 'BS'
     }

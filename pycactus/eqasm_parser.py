@@ -93,6 +93,17 @@ class Eqasm_parser:
                              | insn_addi
                              | insn_smis
                              | insn_smit
+                             | insn_fcvtws
+                             | insn_fcvtsw
+                             | insn_flw
+                             | insn_fsw
+                             | insn_fadds
+                             | insn_fsubs
+                             | insn_fmuls
+                             | insn_fdivs
+                             | insn_feqs
+                             | insn_flts
+                             | insn_fles
                              | insn_bra
                              | insn_goto
                              | insn_brn
