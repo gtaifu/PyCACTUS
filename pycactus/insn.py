@@ -51,6 +51,18 @@ class InsnName(Enum):
     SB = auto()
     SW = auto()
 
+    FCVT_W_S = auto()
+    FCVT_S_W = auto()
+    FLW = auto()
+    FSW = auto()
+    FADD_S = auto()
+    FSUB_S = auto()
+    FMUL_S = auto()
+    FDIV_S = auto()
+    FEQ_S = auto()
+    FLT_S = auto()
+    FLE_S = auto()
+
 
 three_reg_cl_insn = {
     InsnName.ADD: "add",

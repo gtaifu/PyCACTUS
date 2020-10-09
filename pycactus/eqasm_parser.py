@@ -111,6 +111,61 @@ class Eqasm_parser:
         '''
         p[0] = p[1]
 
+    def p_insn_fcvtws(self, p):
+        'insn_fcvtws : FCVT_W_S  '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fcvtsw(self, p):
+        'insn_fcvtsw : fcvtsw '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_flw(self, p):
+        'insn_flw : flw '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fsw(self, p):
+        'insn_fsw : fsw '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fadds(self, p):
+        'insn_fadds : fadds '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fsubs(self, p):
+        'insn_fsubs : fsubs '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fmuls(self, p):
+        'insn_fmuls : fmuls '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fdivs(self, p):
+        'insn_fdivs : fdivs '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_feqs(self, p):
+        'insn_feqs : feqs '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_flts(self, p):
+        'insn_flts : flts '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
+    def p_insn_fles(self, p):
+        'insn_fles : fles '
+        insn = Instruction(InsnName., )
+        p[0] = insn
+
     def p_quantum_statement(self, p):
         '''quantum_statement : qbs quantum_instructions
                              | quantum_instructions

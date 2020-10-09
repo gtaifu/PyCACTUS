@@ -76,17 +76,17 @@ class Eqasm_lexer(object):
         'bleu': 'BLEU',
         'bgtu': 'BGTU',
         'bgeu': 'BGEU',
-        'fcvt.w.s': 'FCVT.W.S',
-        'fcvt.s.w': 'FCVT.S.W',
+        'fcvt.w.s': 'FCVT_W_S',
+        'fcvt.s.w': 'FCVT_S_W',
         'flw': 'FLW',
         'fsw': 'FSW',
-        'fadd.s': 'FADD.S',
-        'fsub.s': 'FSUB.S',
-        'fmul.s': 'FMUL.S',
-        'fdiv.s': 'FDIV.S',
-        'feq.s': 'FEQ.S',
-        'flt.s': 'FLT.S',
-        'fle.s': 'FLE.S',
+        'fadd.s': 'FADD_S',
+        'fsub.s': 'FSUB_S',
+        'fmul.s': 'FMUL_S',
+        'fdiv.s': 'FDIV_S',
+        'feq.s': 'FEQ_S',
+        'flt.s': 'FLT_S',
+        'fle.s': 'FLE_S',
         'qnop': 'QNOP',
         'bs': 'BS'
     }
@@ -104,6 +104,7 @@ class Eqasm_lexer(object):
         'INTEGER',
         'IDENTIFIER',
         'RREG',
+        'FREG',
         'SREG',
         'TREG',
         'QREG',
@@ -146,6 +147,23 @@ class Eqasm_lexer(object):
         r","
         return t
 
+    def t_RREG(self, t):
+        r'r\d+'
+        t.type = 'RREG'
+        logger_lex.debug('lex: [RREG: {}, value: {}]'.format(
+            t.value, int(t.value[1:])))
+        t.value = int(t.value[1:])
+        return t  # if no return, this token is thrown away
+
+    def t_FReg(self, t):
+        r'f\d+'
+        t.type = 'FREG'
+        logger_lex.debug('lex: [FReg: {}, value: {}]'.format(
+            t.value, int(t.value[1:])))
+        t.value = int(t.value[1:])
+
+        return t
+
     def t_QReg(self, t):
         r'q\d+'
         t.type = 'QREG'
@@ -171,16 +189,8 @@ class Eqasm_lexer(object):
         t.value = int(t.value[1:])
         return t
 
-    def t_RREG(self, t):
-        r'r\d+'
-        t.type = 'RREG'
-        logger_lex.debug('lex: [RREG: {}, value: {}]'.format(
-            t.value, int(t.value[1:])))
-        t.value = int(t.value[1:])
-        return t  # if no return, this token is thrown away
-
     def t_IDENTIFIER(self, t):
-        r'[a-zA-Z_][a-zA-Z_0-9]*'
+        r'[a-zA-Z_][\.a-zA-Z_0-9]*'
         # Check for reserved words
         # print('found token: {}'.format(t.value))
         t.type = self.reserved.get(t.value, 'IDENTIFIER')
