@@ -1,19 +1,17 @@
 from bitstring import BitArray
 import pycactus.global_config as gc
 from pycactus.utils import get_logger
+from .bit_array_cell import Bit_array_cell
 
 logger = get_logger((__name__).split('.')[-1])
 
 
-class General_purpose_register():
+class General_purpose_register(Bit_array_cell):
     '''General purpose register, used to store integers.
     '''
 
     def __init__(self, width):
-        assert(isinstance(width, int))
-        # the width is supposed not to change in the future
-        self.bitstring = BitArray(width)
-        self._width = width
+        super().__init__(width)
 
     def signed_value(self):
         return self.bitstring.int

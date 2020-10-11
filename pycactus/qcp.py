@@ -337,6 +337,14 @@ class Quantum_control_processor():
             self.qotrf.set_tq_reg(insn.ti, insn.tq_list)
             self.pc += 1             # update the PC
 
+        # ------------------------- FP operations -------------------------
+        elif insn.name == InsnName.FCVT_S_W:
+            assert(insn.rd is not None)
+            assert(insn.fs is not None)
+
+            self.pc += 1             # update the PC
+
+        # ------------------------- quantum operation -------------------------
         elif insn.name == InsnName.BUNDLE:
             assert(insn.q_ops is not None)
             for qop in insn.q_ops:
