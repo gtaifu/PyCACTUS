@@ -51,26 +51,46 @@ class InsnName(Enum):
     SB = auto()
     SW = auto()
 
-    FCVT_W_S = auto()
-    FCVT_S_W = auto()
-    FLW = auto()
-    FSW = auto()
-    FADD_S = auto()
-    FSUB_S = auto()
-    FMUL_S = auto()
-    FDIV_S = auto()
-    FEQ_S = auto()
-    FLT_S = auto()
-    FLE_S = auto()
+    FCVT_W_S = auto()  # FCVT.W.S fd, rs
+    FCVT_S_W = auto()  # FCVT.S.W rd, fs
+    FLW = auto()       # FLW fd, imm(rs)
+    FSW = auto()       # FSW fs, imm(rs)
+    FADD_S = auto()    # FADD.S fd, fs1, fs2
+    FSUB_S = auto()    # FSUB.S fd, fs1, fs2
+    FMUL_S = auto()    # FMUL.S fd, fs1, fs2
+    FDIV_S = auto()    # FDIV.S fd, fs1, fs2
+    FEQ_S = auto()     # FEQ.S rd, fs1, fs2
+    FLT_S = auto()     # FLT.S rd, fs1, fs2
+    FLE_S = auto()     # FLE.S rd, fs1, fs2
 
 
-three_reg_cl_insn = {
+int_arith_name = {
     InsnName.ADD: "add",
     InsnName.SUB: "sub",
     InsnName.AND: "and",
     InsnName.OR: "or",
     InsnName.XOR: "xor"
 }
+
+inv_int_arith_name = {v: k for k, v in int_arith_name.items()}
+
+fp_arith_name = {
+    InsnName.FADD_S: "fadd.s",
+    InsnName.FSUB_S: "fsub.s",
+    InsnName.FMUL_S: "fmul.s",
+    InsnName.FDIV_S: "fdiv.s"
+}
+
+inv_fp_arith_name = {v: k for k, v in fp_arith_name.items()}
+
+fp_cmp_insn = {
+    InsnName.FEQ_S: "feq.s",
+    InsnName.FLT_S: "flt.s",
+    InsnName.FLE_S: "fle.s"
+}
+
+
+inv_fp_cmp_insn = {v: k for k, v in fp_cmp_insn.items()}
 
 CMP_FLAG = {'always': 0,
             'never': 1,
@@ -110,6 +130,9 @@ class Instruction():
         self.rd = kwargs.pop('rd', None)
         self.rs = kwargs.pop('rs', None)
         self.rt = kwargs.pop('rt', None)
+        self.fd = kwargs.pop('fd', None)
+        self.fs = kwargs.pop('fs', None)  # fs -> fs1
+        self.ft = kwargs.pop('ft', None)  # ft -> fs2
         self.labels = kwargs.pop('labels', [])
         self.target_label = kwargs.pop('target_label', None)
         self.cmp_flag = kwargs.pop('cmp_flag', None)
@@ -185,7 +208,7 @@ class Instruction():
             return "LDI r{}, {}".format(self.rd, self.imm)
 
         elif self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
-            return "{} r{}, r{}, r{}".format(three_reg_cl_insn[self.name].upper(), self.rd,
+            return "{} r{}, r{}, r{}".format(int_arith_name[self.name].upper(), self.rd,
                                              self.rs, self.rt)
 
         elif self.name == InsnName.LDUI:
@@ -200,6 +223,25 @@ class Instruction():
             return "{} r{}, {}(r{})".format(self.name, self.rd,
                                             self.imm, self.rt)
 
+        elif self.name == InsnName.FCVT_W_S:
+            return "FCVT.W.S f{}, r{}".format(self.fd, self.rs)
+
+        elif self.name == InsnName.FCVT_S_W:
+            return "FCVT.S.W r{}, f{}".format(self.rd, self.fs)
+
+        elif self.name == InsnName.FLW:
+            return "FLW f{}, {}(r{})".format(self.fd, self.imm, self.rs)
+
+        elif self.name == InsnName.FSW:
+            return "FSW f{}, {}(r{})".format(self.fs, self.imm, self.rs)
+
+        elif self.name in [InsnName.FADD_S, InsnName.FSUB_S, InsnName.FMUL_S, InsnName.FDIV_S]:
+            return "{} f{}, f{}, f{}".format(fp_arith_name[self.name].upper(), self.fd,
+                                             self.fs, self.ft)
+
+        elif self.name in [InsnName.FEQ_S, InsnName.FLT_S, InsnName.FLE_S]:
+            return "{} r{}, f{}, f{}".format(fp_cmp_insn[self.name].upper(), self.rd,
+                                             self.fs, self.ft)
         else:
             return "{}".format(self.name)
 

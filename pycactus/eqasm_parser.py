@@ -97,13 +97,8 @@ class Eqasm_parser:
                              | insn_fcvtsw
                              | insn_flw
                              | insn_fsw
-                             | insn_fadds
-                             | insn_fsubs
-                             | insn_fmuls
-                             | insn_fdivs
-                             | insn_feqs
-                             | insn_flts
-                             | insn_fles
+                             | insn_farith
+                             | insn_fcmp
                              | insn_bra
                              | insn_goto
                              | insn_brn
@@ -112,59 +107,49 @@ class Eqasm_parser:
         p[0] = p[1]
 
     def p_insn_fcvtws(self, p):
-        'insn_fcvtws : FCVT_W_S  '
-        insn = Instruction(InsnName., )
+        'insn_fcvtws : FCVT_W_S  FREG COMMA RREG'
+        insn = Instruction(InsnName.FCVT_W_S, fd=p[2], rs=p[4])
         p[0] = insn
+        self._instructions.append(insn)
 
     def p_insn_fcvtsw(self, p):
-        'insn_fcvtsw : fcvtsw '
-        insn = Instruction(InsnName., )
+        'insn_fcvtsw : FCVT_S_W  RREG COMMA FREG'
+        insn = Instruction(InsnName.FCVT_S_W, rd=p[2], fs=p[4])
         p[0] = insn
+        self._instructions.append(insn)
 
     def p_insn_flw(self, p):
-        'insn_flw : flw '
-        insn = Instruction(InsnName., )
+        'insn_flw : FLW FREG COMMA imm LPAREN RREG RPAREN'
+        insn = Instruction(InsnName.FLW, fd=p[2], imm=p[4], rs=p[6])
         p[0] = insn
+        self._instructions.append(insn)
 
     def p_insn_fsw(self, p):
-        'insn_fsw : fsw '
-        insn = Instruction(InsnName., )
+        'insn_fsw : FSW FREG COMMA imm LPAREN RREG RPAREN'
+        insn = Instruction(InsnName.FLW, fs=p[2], imm=p[4], rs=p[6])
         p[0] = insn
+        self._instructions.append(insn)
 
     def p_insn_fadds(self, p):
-        'insn_fadds : fadds '
-        insn = Instruction(InsnName., )
+        '''insn_farith : FADDS FREG COMMA FREG COMMA FREG
+                       | FSUBS FREG COMMA FREG COMMA FREG
+                       | FMULS FREG COMMA FREG COMMA FREG
+                       | FDIVS FREG COMMA FREG COMMA FREG
+        '''
+        insn_name = inv_fp_arith_name[p[1]]
+        insn = Instruction(insn_name, fd=p[2], fs=p[4], ft=p[6])
         p[0] = insn
-
-    def p_insn_fsubs(self, p):
-        'insn_fsubs : fsubs '
-        insn = Instruction(InsnName., )
-        p[0] = insn
-
-    def p_insn_fmuls(self, p):
-        'insn_fmuls : fmuls '
-        insn = Instruction(InsnName., )
-        p[0] = insn
-
-    def p_insn_fdivs(self, p):
-        'insn_fdivs : fdivs '
-        insn = Instruction(InsnName., )
-        p[0] = insn
+        self._instructions.append(insn)
 
     def p_insn_feqs(self, p):
-        'insn_feqs : feqs '
-        insn = Instruction(InsnName., )
+        '''insn_fcmp : FEQS RREG COMMA FREG COMMA FREG
+                     | FLTS RREG COMMA FREG COMMA FREG
+                     | FLES RREG COMMA FREG COMMA FREG
+        '''
+        insn_name = inv_fp_cmp_insn[p[1]]
+        insn = Instruction(insn_name, rd=p[2], fs=p[4], ft=p[6])
         p[0] = insn
-
-    def p_insn_flts(self, p):
-        'insn_flts : flts '
-        insn = Instruction(InsnName., )
-        p[0] = insn
-
-    def p_insn_fles(self, p):
-        'insn_fles : fles '
-        insn = Instruction(InsnName., )
-        p[0] = insn
+        self._instructions.append(insn)
 
     def p_quantum_statement(self, p):
         '''quantum_statement : qbs quantum_instructions
@@ -348,20 +333,8 @@ class Eqasm_parser:
                     | XOR r_reg COMMA r_reg COMMA r_reg
                     | AND r_reg COMMA r_reg COMMA r_reg
         '''
-
-        if p[1] == 'add':
-            insn = Instruction(InsnName.ADD, rd=p[2], rs=p[4], rt=p[6])
-        elif p[1] == 'sub':
-            insn = Instruction(InsnName.SUB, rd=p[2], rs=p[4], rt=p[6])
-        elif p[1] == 'or':
-            insn = Instruction(InsnName.OR, rd=p[2], rs=p[4], rt=p[6])
-        elif p[1] == 'xor':
-            insn = Instruction(InsnName.XOR, rd=p[2], rs=p[4], rt=p[6])
-        elif p[1] == 'and':
-            insn = Instruction(InsnName.AND, rd=p[2], rs=p[4], rt=p[6])
-        else:
-            raise ValueError("Found mismatched pattern {}".format(p[1]))
-
+        insn_name = inv_int_arith_name[p[1]]
+        insn = Instruction(insn_name, rd=p[2], rs=p[4], rt=p[6])
         p[0] = insn
         self._instructions.append(insn)
 
@@ -455,6 +428,10 @@ class Eqasm_parser:
 
     def p_r_reg(self, p):
         'r_reg : RREG'
+        p[0] = p[1]
+
+    def p_f_reg(self, p):
+        'f_reg : FREG'
         p[0] = p[1]
 
     def p_q_reg(self, p):
