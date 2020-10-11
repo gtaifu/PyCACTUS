@@ -97,7 +97,7 @@ class Eqasm_parser:
                              | insn_fcvtsw
                              | insn_flw
                              | insn_fsw
-                             | insn_farith
+                             | insn_fp_arith
                              | insn_fcmp
                              | insn_bra
                              | insn_goto
@@ -107,44 +107,44 @@ class Eqasm_parser:
         p[0] = p[1]
 
     def p_insn_fcvtws(self, p):
-        'insn_fcvtws : FCVT_W_S  FREG COMMA RREG'
+        'insn_fcvtws : FCVT_W_S  f_reg COMMA r_reg'
         insn = Instruction(InsnName.FCVT_W_S, fd=p[2], rs=p[4])
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_fcvtsw(self, p):
-        'insn_fcvtsw : FCVT_S_W  RREG COMMA FREG'
+        'insn_fcvtsw : FCVT_S_W  r_reg COMMA f_reg'
         insn = Instruction(InsnName.FCVT_S_W, rd=p[2], fs=p[4])
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_flw(self, p):
-        'insn_flw : FLW FREG COMMA imm LPAREN RREG RPAREN'
+        'insn_flw : FLW f_reg COMMA imm LPAREN r_reg RPAREN'
         insn = Instruction(InsnName.FLW, fd=p[2], imm=p[4], rs=p[6])
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_fsw(self, p):
-        'insn_fsw : FSW FREG COMMA imm LPAREN RREG RPAREN'
-        insn = Instruction(InsnName.FLW, fs=p[2], imm=p[4], rs=p[6])
+        'insn_fsw : FSW f_reg COMMA imm LPAREN r_reg RPAREN'
+        insn = Instruction(InsnName.FSW, fs=p[2], imm=p[4], rs=p[6])
         p[0] = insn
         self._instructions.append(insn)
 
-    def p_insn_fadds(self, p):
-        '''insn_farith : FADDS FREG COMMA FREG COMMA FREG
-                       | FSUBS FREG COMMA FREG COMMA FREG
-                       | FMULS FREG COMMA FREG COMMA FREG
-                       | FDIVS FREG COMMA FREG COMMA FREG
+    def p_insn_fp_arith(self, p):
+        '''insn_fp_arith : FADD_S f_reg COMMA f_reg COMMA f_reg
+                         | FSUB_S f_reg COMMA f_reg COMMA f_reg
+                         | FMUL_S f_reg COMMA f_reg COMMA f_reg
+                         | FDIV_S f_reg COMMA f_reg COMMA f_reg
         '''
         insn_name = inv_fp_arith_name[p[1]]
         insn = Instruction(insn_name, fd=p[2], fs=p[4], ft=p[6])
         p[0] = insn
         self._instructions.append(insn)
 
-    def p_insn_feqs(self, p):
-        '''insn_fcmp : FEQS RREG COMMA FREG COMMA FREG
-                     | FLTS RREG COMMA FREG COMMA FREG
-                     | FLES RREG COMMA FREG COMMA FREG
+    def p_insn_fcmp(self, p):
+        '''insn_fcmp : FEQ_S r_reg COMMA f_reg COMMA f_reg
+                     | FLT_S r_reg COMMA f_reg COMMA f_reg
+                     | FLE_S r_reg COMMA f_reg COMMA f_reg
         '''
         insn_name = inv_fp_cmp_insn[p[1]]
         insn = Instruction(insn_name, rd=p[2], fs=p[4], ft=p[6])
@@ -235,8 +235,8 @@ class Eqasm_parser:
 
     def p_insn_ld(self, p):  # lw/lb/lbu rd, imm10(rt)
         '''insn_ld : LW r_reg COMMA r_reg LPAREN imm RPAREN
-                | LB r_reg COMMA r_reg LPAREN imm RPAREN
-                | LBU r_reg COMMA r_reg LPAREN imm RPAREN
+                   | LB r_reg COMMA r_reg LPAREN imm RPAREN
+                   | LBU r_reg COMMA r_reg LPAREN imm RPAREN
         '''
 
         if (p[1]).lower() == 'lw':
@@ -537,15 +537,15 @@ class Eqasm_parser:
     #     print("Error near line", str(self.lexer.lineno), 'Column', col)
 
     def p_error(self, p):
+        if not p:
+            logger_yacc.info("Successfully parsed the entire file.")
+            return
+
         p.lexpos = col = self.find_column(self.lexer.data, p)
         error_msg = "Syntax error: Found unmatched {0}. Skip line {1} and continue ...".format(
             p, str(self.lexer.lineno), col)
         self.error_list.append(error_msg)
         logger_yacc.error(error_msg)
-
-        if not p:
-            print("End of File!")
-            return
 
         # Read ahead looking for a new line
         while True:
