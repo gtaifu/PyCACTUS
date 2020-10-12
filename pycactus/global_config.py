@@ -10,6 +10,7 @@ GPR_WIDTH = 32
 
 # number of FP registers
 NUM_FPR = 32
+FPR_WIDTH = 32
 
 # number of single-qubit operation target registers
 NUM_SQ_QOTR = 32

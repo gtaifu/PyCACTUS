@@ -1,3 +1,4 @@
+from pycactus.fpr import FPRF
 from bitstring import BitArray
 from .utils import *
 from .qotr import QOTRF
@@ -8,7 +9,7 @@ import pycactus.global_config as gc
 from .qubit_state_sim.if_qubit_sim import If_qubit_sim
 
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 class Quantum_control_processor():
@@ -17,8 +18,10 @@ class Quantum_control_processor():
 
         self.qubit_state_sim = qubit_state_sim
 
-        self.gprf = GPRF()  # general purpose register file
-        self.fprf = None    # floating point register file
+        # general purpose register file
+        self.gprf = GPRF(num_gpr=gc.NUM_GPR, gpr_width=gc.GPR_WIDTH)
+        # floating point register file
+        self.fprf = FPRF(num_fpr=gc.NUM_FPR, fpr_width=gc.FPR_WIDTH)
 
         # operation target register files
         self.qotrf = QOTRF()
@@ -108,11 +111,28 @@ class Quantum_control_processor():
         self.process_insn(insn)  # execute
 
     def write_gpr(self, rd: int, value: BitArray):
-        '''Update the target register `rd` with the `value`
+        '''Update the target GPR `rd` with the `value`.
+        Args:
+        - `rd` (int): the GPR number in the GPR file.
+        - `value` (BitArray): the value to write.
+
+        Note: the value should be converted into the BitArray format.
         '''
         if isinstance(value, int):
             value = BitArray(int=value, length=32)
         self.gprf.write(rd, value)
+
+    def write_fpr(self, fd: int, value: BitArray):
+        '''Update the target FP register `fd` with the `value`
+        Args:
+        - `rd` (int): the GPR number in the GPR file.
+        - `value` (BitArray): the value to write.
+
+        Note: the floating point value should be converted into the BitArray format.
+        '''
+        if isinstance(value, int):
+            value = BitArray(int=value, length=32)
+        self.fprf.write(fd, value)
 
     def read_gpr_unsigned(self, rs: int):
         return self.gprf.read_unsigned(rs)
@@ -180,14 +200,6 @@ class Quantum_control_processor():
         elif insn.name == InsnName.BR:
             assert(insn.cmp_flag is not None)
             assert(insn.target_label is not None)
-
-            # self.num_iteration += 1
-            # if self.num_iteration > 100:
-            #     print('The number of iteration has exceeded the maximum allowed number.')
-            #     exit(0)
-            # print("current flag: ", insn.cmp_flag.upper())
-            # print("self.label_addr[insn.target_label]: ",
-            #       self.label_addr[insn.target_label])
 
             if self.cmp_flags[CMP_FLAG[insn.cmp_flag]]:
                 print("current PC: ", self.pc)
@@ -339,8 +351,111 @@ class Quantum_control_processor():
 
         # ------------------------- FP operations -------------------------
         elif insn.name == InsnName.FCVT_S_W:
+            # Convert the 32-bit FP number stored in fs into a 32-bit
+            # integer and store it in rd.
             assert(insn.rd is not None)
             assert(insn.fs is not None)
+
+            float_value = self.fprf[insn.fs].float()
+            self.write_gpr(insn.rd, BitArray(
+                int=int(float_value), length=len(self.gprf[insn.rd])))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FCVT_W_S:
+            # Convert the 32-bit signed integer in rs to a 32-bit FP number,
+            # and store it in fd.
+            assert(insn.fd is not None)
+            assert(insn.rs is not None)
+
+            int_value = self.read_gpr_signed(insn.rs)
+            self.write_fpr(insn.fd, BitArray(
+                float=int_value, length=len(self.fprf[insn.fd])))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FSW:
+            assert(insn.fs is not None)
+            assert(insn.rr is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rs) + insn.imm
+            self.data_mem.write_word(addr, self.fprf.read(insn.fs))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FLW:
+            assert(insn.fd is not None)
+            assert(insn.rs is not None)
+            assert(insn.imm is not None)
+
+            # assumed imm is already interpreted as signed integer
+            addr = self.read_gpr_unsigned(insn.rs) + insn.imm
+            ret_word = self.data_mem.read_word(addr)
+            self.write_fpr(insn.fd, ret_word)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FADD_S:
+            assert(insn.fd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            self.write_fpr(insn.fd, self.fprf[insn.fs] + self.fprf[insn.ft])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FSUB_S:
+            assert(insn.fd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            self.write_fpr(insn.fd, self.fprf[insn.fs] - self.fprf[insn.ft])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FMUL_S:
+            assert(insn.fd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            self.write_fpr(insn.fd, self.fprf[insn.fs] * self.fprf[insn.ft])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FDIV_S:
+            assert(insn.fd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            self.write_fpr(insn.fd, self.fprf[insn.fs] / self.fprf[insn.ft])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FEQ_S:
+            assert(insn.rd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            res = int(self.fprf[insn.fs].float() == self.fprf[insn.ft].float())
+            self.write_gpr(insn.rd, BitArray(
+                int=res, length=self.gprf[insn.rd]))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FLT_S:
+            assert(insn.rd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            res = int(self.fprf[insn.fs].float() < self.fprf[insn.ft].float())
+            self.write_gpr(insn.rd, BitArray(
+                int=res, length=self.gprf[insn.rd]))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.FLE_S:
+            assert(insn.rd is not None)
+            assert(insn.fs is not None)
+            assert(insn.ft is not None)
+            res = int(self.fprf[insn.fs].float() <= self.fprf[insn.ft].float())
+            self.write_gpr(insn.rd, BitArray(
+                int=res, length=self.gprf[insn.rd]))
 
             self.pc += 1             # update the PC
 
