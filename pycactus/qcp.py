@@ -257,81 +257,14 @@ class Quantum_control_processor():
             self.pc += 1             # update the PC
 
         # ------------------------- three operands -------------------------
-        elif insn.name == InsnName.ADD:
+        # InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR,
+        # InsnName.MUL, InsnName.DIV, InsnName.REM
+        elif insn.name in int_op.keys():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
             self.write_gpr_bits(insn.rd,
-                                self.gprf[insn.rs] + self.gprf[insn.rt])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.SUB:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            self.write_gpr_bits(insn.rd,
-                                self.gprf[insn.rs] - self.gprf[insn.rt])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.AND:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            self.write_gpr_bits(insn.rd,
-                                self.gprf[insn.rs] & self.gprf[insn.rt])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.MUL:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-
-            mul_res = self.read_gpr_int(insn.rs) *\
-                self.read_gpr_int(insn.rt)
-
-            self.write_gpr_value(insn.rd, int=mul_res)
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.DIV:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            div_res = self.read_gpr_int(insn.rs) / self.read_gpr_int(insn.rt)
-
-            self.write_gpr_value(insn.rd, int=div_res)
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.REM:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-
-            rem_res = self.read_gpr_int(insn.rs) % self.read_gpr_int(insn.rt)
-
-            self.write_gpr_value(insn.rd, int=rem_res)
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.OR:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            self.write_gpr_bits(
-                insn.rd, self.gprf[insn.rs] | self.gprf[insn.rt])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == InsnName.XOR:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            self.write_gpr_bits(
-                insn.rd, self.gprf[insn.rs] ^ self.gprf[insn.rt])
+                                int_op[insn.name](self.gprf[insn.rs], self.gprf[insn.rt]))
 
             self.pc += 1             # update the PC
 

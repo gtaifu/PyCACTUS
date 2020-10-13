@@ -86,7 +86,7 @@ int_op = {
     InsnName.OR: operator.or_,
     InsnName.XOR: operator.xor,
     InsnName.MUL: operator.mul,
-    InsnName.DIV: operator.div,
+    InsnName.DIV: operator.truediv,
     InsnName.REM: operator.mod
 }
 

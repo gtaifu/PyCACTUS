@@ -71,6 +71,21 @@ class General_purpose_register(Bit_array_cell):
         unsigned_sum = self.bitstring.uint ^ other.bitstring.uint
         return BitArray(uint=unsigned_sum, length=self._width)
 
+    def truediv(self, other):
+        self.check_length(other)
+        div_res = self.bitstring.int / other.bitstring.int
+        return BitArray(int=div_res, length=self._width)
+
+    def __mul__(self, other):
+        self.check_length(other)
+        mul_res = self.bitstring.int * other.bitstring.int
+        return BitArray(int=mul_res, length=self._width)
+
+    def __mod__(self, other):
+        self.check_length(other)
+        mul_res = self.bitstring.int % other.bitstring.int
+        return BitArray(int=mul_res, length=self._width)
+
     def __eq__(self, other):
         self.check_length(other)
         return self.bitstring == other.bitstring
