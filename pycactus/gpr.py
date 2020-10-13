@@ -26,9 +26,6 @@ class General_purpose_register(Bit_array_cell):
     def __str__(self):
         return "{}".format(self.bitstring.int)
 
-    def __len__(self):
-        return self._width
-
     def check_length(self, other):
         if self.__len__() != len(other):
             raise ValueError("Cannot perform addition on two bitstring with different"
@@ -93,21 +90,6 @@ class General_purpose_register(Bit_array_cell):
     def __ne__(self, other):
         self.check_length(other)
         return self.bitstring != other.bitstring
-
-    def __getitem__(self, item):
-        return self.bitstring[item]
-
-    def update_value(self, value: BitArray):
-        '''Update the value of this register to `value`.
-        Args:
-          - value (BitArray): the value to write
-        '''
-
-        if self._width != len(value):
-            raise ValueError("Given value has a bitstring with a different length ({}) "
-                             " to the original length ({})".format(len(value), self._width))
-
-        self.bitstring = value
 
 
 class GPRF(Register_file):

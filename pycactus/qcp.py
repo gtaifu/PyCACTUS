@@ -13,7 +13,7 @@ logger.setLevel(logging.DEBUG)
 
 
 class Quantum_control_processor():
-    def __init__(self, qubit_state_sim, start_addr=0):
+    def __init__(self, qubit_state_sim=None, start_addr=0):
         # assert(isinstance(qubit_state_sim, If_qubit_sim))
 
         self.qubit_state_sim = qubit_state_sim
@@ -83,7 +83,7 @@ class Quantum_control_processor():
                 self.label_addr[label] = i
 
         for insn in self.insn_mem:
-            if insn.name in [InsnName.BR]:
+            if insn.name in [eqasm_insn.BR]:
                 if insn.target_label not in self.label_addr:
                     raise ValueError("Given program is malformed. Cannot find the definition for "
                                      "the target address label: {} in the instruction {}".format(
@@ -175,58 +175,42 @@ class Quantum_control_processor():
 
     def process_insn(self, insn):
         # ------------------------- no operand -------------------------
-        if insn.name == InsnName.STOP:
+        if insn.name == eqasm_insn.STOP:
             self.stop_bit = 1
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.NOP:
+        elif insn.name == eqasm_insn.NOP:
             self.pc += 1             # update the PC
 
         # ------------------------- one operand -------------------------
-        elif insn.name == InsnName.QWAIT:
+        elif insn.name == eqasm_insn.QWAIT:  # currently ignore all timing related insns.
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.QWAITR:
+        elif insn.name == eqasm_insn.QWAITR:
             self.pc += 1             # update the PC
 
         # ------------------------- two operands -------------------------
-        elif insn.name == InsnName.NOT:
-            assert(insn.rd is not None)
-            assert(insn.rt is not None)
+        elif insn.name == eqasm_insn.NOT:
             print("~self.gprf[insn.rt]: ", ~self.gprf[insn.rt])
             self.write_gpr_bits(insn.rd, ~self.gprf[insn.rt])
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.CMP:
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            self.cmp_flags[CMP_FLAG['eq']] = (
-                self.gprf[insn.rs] == self.gprf[insn.rt])
-            self.cmp_flags[CMP_FLAG['ne']] = (
-                self.gprf[insn.rs] != self.gprf[insn.rt])
-            self.cmp_flags[CMP_FLAG['ltu']] = (
-                self.read_gpr_uint(insn.rs) < self.read_gpr_uint(insn.rt))
-            self.cmp_flags[CMP_FLAG['geu']] = (
-                self.read_gpr_uint(insn.rs) >= self.read_gpr_uint(insn.rt))
-            self.cmp_flags[CMP_FLAG['leu']] = (
-                self.read_gpr_uint(insn.rs) <= self.read_gpr_uint(insn.rt))
-            self.cmp_flags[CMP_FLAG['gtu']] = (
-                self.read_gpr_uint(insn.rs) > self.read_gpr_uint(insn.rt))
-            self.cmp_flags[CMP_FLAG['lt']] = (
-                self.read_gpr_int(insn.rs) < self.read_gpr_int(insn.rt))
-            self.cmp_flags[CMP_FLAG['ge']] = (
-                self.read_gpr_int(insn.rs) >= self.read_gpr_int(insn.rt))
-            self.cmp_flags[CMP_FLAG['le']] = (
-                self.read_gpr_int(insn.rs) <= self.read_gpr_int(insn.rt))
-            self.cmp_flags[CMP_FLAG['gt']] = (
-                self.read_gpr_int(insn.rs) > self.read_gpr_int(insn.rt))
+        elif insn.name == eqasm_insn.CMP:
+            for key in ['eq', 'ne']:
+                self.cmp_flags[CMP_FLAG[key]] = cmp_op[key](self.gprf[insn.rs],
+                                                            self.gprf[insn.rt])
+
+            for key in ['lt', 'ge', 'le', 'gt']:
+                self.cmp_flags[CMP_FLAG[key]] = cmp_op[key](self.read_gpr_int(insn.rs),
+                                                            self.read_gpr_int(insn.rt))
+
+            for key in ['ltu', 'geu', 'leu', 'gtu']:
+                self.cmp_flags[CMP_FLAG[key]] = cmp_op[key](self.read_gpr_uint(insn.rs),
+                                                            self.read_gpr_uint(insn.rt))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.BR:
-            assert(insn.cmp_flag is not None)
-            assert(insn.target_label is not None)
-
+        elif insn.name == eqasm_insn.BR:
             if self.cmp_flags[CMP_FLAG[insn.cmp_flag]]:
                 print("current PC: ", self.pc)
                 self.pc = self.label_addr[insn.target_label]
@@ -234,23 +218,16 @@ class Quantum_control_processor():
             else:
                 self.pc += 1
 
-        elif insn.name == InsnName.FBR:
-            assert(insn.rd is not None)
-            assert(insn.cmp_flag is not None)
+        elif insn.name == eqasm_insn.FBR:
             cmp_res = self.cmp_flags[CMP_FLAG[insn.cmp_flag]]
             self.write_gpr_value(insn.rd, int=cmp_res)
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FMR:
-            assert(insn.rd is not None)
-            assert(insn.qs is not None)
+        elif insn.name == eqasm_insn.FMR:
             self.write_gpr_value(insn.rd, int=self.msmt_result[insn.qs])
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.LDI:
-            assert(insn.rd is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.LDI:
             # assumed imm is already interpreted as signed integer
             self.write_gpr_value(insn.rd, int=insn.imm)
 
@@ -260,19 +237,12 @@ class Quantum_control_processor():
         # InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR,
         # InsnName.MUL, InsnName.DIV, InsnName.REM
         elif insn.name in int_op.keys():
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
             self.write_gpr_bits(insn.rd,
                                 int_op[insn.name](self.gprf[insn.rs], self.gprf[insn.rt]))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.LDUI:
-            assert(insn.rd is not None)
-            assert(insn.rs is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.LDUI:
             # assumed imm is already interpreted as unsigned integer
             composed_bitstring = BitArray(
                 uint=insn.imm, length=15) + self.gprf[insn.rs][15:32]
@@ -281,11 +251,7 @@ class Quantum_control_processor():
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.LW:
-            assert(insn.rd is not None)
-            assert(insn.rt is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.LW:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_word = self.data_mem.read_word(addr)
@@ -294,16 +260,12 @@ class Quantum_control_processor():
 
             self.pc += 1             # update the PC
 
-        elif insn.name in [InsnName.LB, InsnName.LBU]:
-            assert(insn.rd is not None)
-            assert(insn.rt is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name in [eqasm_insn.LB, eqasm_insn.LBU]:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_byte = self.data_mem.read_byte(addr)
 
-            if insn.name == InsnName.LB:
+            if insn.name == eqasm_insn.LB:
                 # signed extension
                 se_word = BitArray(int=ret_byte.int, length=32)
             else:  # LBU
@@ -314,80 +276,54 @@ class Quantum_control_processor():
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.SW:
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.SW:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             self.data_mem.write_word(addr, self.gprf.read(insn.rs))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.SB:
-            assert(insn.rs is not None)
-            assert(insn.rt is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.SB:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             self.data_mem.write_byte(addr, self.gprf.read(insn.rs)[24:32])
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.SMIS:
-            assert(insn.si is not None)
-            assert(insn.sq_list is not None)
+        elif insn.name == eqasm_insn.SMIS:
             self.qotrf.set_sq_reg(insn.si, insn.sq_list)
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.SMIT:
-            assert(insn.ti is not None)
-            assert(insn.tq_list is not None)
+        elif insn.name == eqasm_insn.SMIT:
             self.qotrf.set_tq_reg(insn.ti, insn.tq_list)
             self.pc += 1             # update the PC
 
         # ------------------------- FP operations -------------------------
-        elif insn.name == InsnName.FCVT_W_S:
+        elif insn.name == eqasm_insn.FCVT_W_S:
             # Convert the 32-bit FP number in fs into a 32-bit signed integer,
             # and store it in rd.
-            assert(insn.rd is not None)
-            assert(insn.fs is not None)
-
             float_value = self.fprf[insn.fs].float()
 
             self.write_gpr_value(insn.rd, int=int(float_value))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FCVT_S_W:
+        elif insn.name == eqasm_insn.FCVT_S_W:
             # Convert a 32-bit signed integer in rs into a 32-bit FP number,
             # and store it in fd.
-            assert(insn.fd is not None)
-            assert(insn.rs is not None)
-
             int_value = self.read_gpr_int(insn.rs)
             self.write_fpr_value(insn.fd, value=int_value)
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FSW:
-            assert(insn.fs is not None)
-            assert(insn.rs is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.FSW:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rs) + insn.imm
             self.data_mem.write_word(addr, self.fprf.read(insn.fs))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FLW:
-            assert(insn.fd is not None)
-            assert(insn.rs is not None)
-            assert(insn.imm is not None)
-
+        elif insn.name == eqasm_insn.FLW:
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rs) + insn.imm
             ret_word = self.data_mem.read_word(addr)
@@ -395,72 +331,50 @@ class Quantum_control_processor():
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FADD_S:
-            assert(insn.fd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FADD_S:
             self.write_fpr_bits(
                 insn.fd, self.fprf[insn.fs] + self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FSUB_S:
-            assert(insn.fd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FSUB_S:
             self.write_fpr_bits(
                 insn.fd, self.fprf[insn.fs] - self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FMUL_S:
-            assert(insn.fd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FMUL_S:
             self.write_fpr_bits(
                 insn.fd, self.fprf[insn.fs] * self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FDIV_S:
-            assert(insn.fd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FDIV_S:
             self.write_fpr_bits(
                 insn.fd, self.fprf[insn.fs] / self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FEQ_S:
-            assert(insn.rd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FEQ_S:
             res = int(self.fprf[insn.fs].float() == self.fprf[insn.ft].float())
             self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FLT_S:
-            assert(insn.rd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FLT_S:
             res = int(self.fprf[insn.fs].float() < self.fprf[insn.ft].float())
             self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FLE_S:
-            assert(insn.rd is not None)
-            assert(insn.fs is not None)
-            assert(insn.ft is not None)
+        elif insn.name == eqasm_insn.FLE_S:
             res = int(self.fprf[insn.fs].float() <= self.fprf[insn.ft].float())
             self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 
         # ------------------------- quantum operation -------------------------
-        elif insn.name == InsnName.BUNDLE:
-            assert(insn.q_ops is not None)
+        elif insn.name == eqasm_insn.BUNDLE:
             for qop in insn.q_ops:
                 op_name = qop.name
 

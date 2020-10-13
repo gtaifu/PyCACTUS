@@ -1,5 +1,7 @@
 import operator
 from enum import Enum, auto
+
+from bitstring import Error
 from pycactus.utils import *
 
 logger = get_logger((__name__).split('.')[-1])
@@ -12,7 +14,7 @@ class InsnType(Enum):
     QUANTUM = 2
 
 
-class InsnName(Enum):
+class eqasm_insn(Enum):
     # no operand
     NOP = auto()
     STOP = auto()
@@ -68,43 +70,101 @@ class InsnName(Enum):
     FLE_S = auto()     # FLE.S rd, fs1, fs2
 
 
+eqasm_insn_fields = {
+    # no operand
+    eqasm_insn.NOP: [],
+    eqasm_insn.STOP: [],
+
+    # one operand
+    eqasm_insn.QWAIT: ['imm'],  # qwait imm
+    eqasm_insn.QWAITR: ['rs'],  # qwaitr rs
+    # quantum bundles 1, op1 (s/t)reg1 | op2 (s/t)reg2
+    eqasm_insn.BUNDLE: ['q_ops'],
+    eqasm_insn.SMIS: ['si', 'sq_list'],  # smis si, sq_list
+    eqasm_insn.SMIT: ['ti', 'tq_list'],
+
+    # two operands
+    # one src GPR, one dst GPR
+    eqasm_insn.NOT: ['rd', 'rt'],  # NOT Rd, Rt
+
+    # two src GPR
+    eqasm_insn.CMP: ['rs', 'rt'],  # CMP Rs, Rt
+
+    # BR <cmp_flag>, <target_label>
+    eqasm_insn.BR: ['cmp_flag', 'target_label'],
+    eqasm_insn.FBR: ['cmp_flag', 'rd'],  # FBR <cmp_flag>, Rd
+    eqasm_insn.FMR: ['rd', 'qs'],  # fmr rd, qs
+
+    eqasm_insn.LDI: ['rd', 'imm'],  # LDI Rd, Imm20
+
+    # three operands
+    eqasm_insn.ADD: ['rd', 'rs', 'rt'],  # ADD rd, rs, rt
+    eqasm_insn.SUB: ['rd', 'rs', 'rt'],  # SUB rd, rs, rt
+    eqasm_insn.OR: ['rd', 'rs', 'rt'],   # OR  rd, rs, rt
+    eqasm_insn.XOR: ['rd', 'rs', 'rt'],  # XOR rd, rs, rt
+    eqasm_insn.AND: ['rd', 'rs', 'rt'],  # AND rd, rs, rt
+    eqasm_insn.MUL: ['rd', 'rs', 'rt'],  # MUL rd, rs, rt
+    eqasm_insn.DIV: ['rd', 'rs', 'rt'],  # DIV rd, rs, rt
+    eqasm_insn.REM: ['rd', 'rs', 'rt'],  # REM rd, rs, rt
+
+    eqasm_insn.LDUI: ['rd', 'rs', 'imm'],  # LDUI rd, rs, imm15
+
+    eqasm_insn.LW: ['rd', 'imm', 'rt'],    # LD  rd, imm10(rt)
+    eqasm_insn.LB: ['rd', 'imm', 'rt'],    # LB  rd, imm10(rt)
+    eqasm_insn.LBU: ['rd', 'imm', 'rt'],   # LBU rd, imm10(rt)
+    eqasm_insn.SB: ['rs', 'imm', 'rt'],    # SB  rs, imm10(rt)
+    eqasm_insn.SW: ['rs', 'imm', 'rt'],    # SW  rs, imm10(rt)
+
+    eqasm_insn.FCVT_W_S: ['rd', 'fs'],        # FCVT.W.S rd, fs
+    eqasm_insn.FCVT_S_W: ['fd', 'rs'],        # FCVT.S.W fd, rs
+    eqasm_insn.FLW: ['fd', 'imm', 'rs'],      # FLW fd, imm(rs)
+    eqasm_insn.FSW: ['fs', 'imm', 'rs'],      # FSW fs, imm(rs)
+    eqasm_insn.FADD_S: ['fd', 'fs1', 'fs2'],  # FADD.S fd, fs1, fs2
+    eqasm_insn.FSUB_S: ['fd', 'fs1', 'fs2'],  # FSUB.S fd, fs1, fs2
+    eqasm_insn.FMUL_S: ['fd', 'fs1', 'fs2'],  # FMUL.S fd, fs1, fs2
+    eqasm_insn.FDIV_S: ['fd', 'fs1', 'fs2'],  # FDIV.S fd, fs1, fs2
+    eqasm_insn.FEQ_S: ['fd', 'fs1', 'fs2'],   # FEQ.S rd, fs1, fs2
+    eqasm_insn.FLT_S: ['fd', 'fs1', 'fs2'],   # FLT.S rd, fs1, fs2
+    eqasm_insn.FLE_S: ['fd', 'fs1', 'fs2']    # FLE.S rd, fs1, fs2
+}
+
 int_arith_name = {
-    InsnName.ADD: "add",
-    InsnName.SUB: "sub",
-    InsnName.AND: "and",
-    InsnName.OR: "or",
-    InsnName.XOR: "xor",
-    InsnName.MUL: "mul",
-    InsnName.DIV: "div",
-    InsnName.REM: "rem"
+    eqasm_insn.ADD: "add",
+    eqasm_insn.SUB: "sub",
+    eqasm_insn.AND: "and",
+    eqasm_insn.OR: "or",
+    eqasm_insn.XOR: "xor",
+    eqasm_insn.MUL: "mul",
+    eqasm_insn.DIV: "div",
+    eqasm_insn.REM: "rem"
 }
 
 int_op = {
-    InsnName.ADD: operator.add,
-    InsnName.SUB: operator.sub,
-    InsnName.AND: operator.and_,
-    InsnName.OR: operator.or_,
-    InsnName.XOR: operator.xor,
-    InsnName.MUL: operator.mul,
-    InsnName.DIV: operator.truediv,
-    InsnName.REM: operator.mod
+    eqasm_insn.ADD: operator.add,
+    eqasm_insn.SUB: operator.sub,
+    eqasm_insn.AND: operator.and_,
+    eqasm_insn.OR: operator.or_,
+    eqasm_insn.XOR: operator.xor,
+    eqasm_insn.MUL: operator.mul,
+    eqasm_insn.DIV: operator.truediv,
+    eqasm_insn.REM: operator.mod
 }
 
 inv_int_arith_name = {v: k for k, v in int_arith_name.items()}
 
 fp_arith_name = {
-    InsnName.FADD_S: "fadd.s",
-    InsnName.FSUB_S: "fsub.s",
-    InsnName.FMUL_S: "fmul.s",
-    InsnName.FDIV_S: "fdiv.s"
+    eqasm_insn.FADD_S: "fadd.s",
+    eqasm_insn.FSUB_S: "fsub.s",
+    eqasm_insn.FMUL_S: "fmul.s",
+    eqasm_insn.FDIV_S: "fdiv.s"
 }
 
 inv_fp_arith_name = {v: k for k, v in fp_arith_name.items()}
 
 fp_cmp_insn = {
-    InsnName.FEQ_S: "feq.s",
-    InsnName.FLT_S: "flt.s",
-    InsnName.FLE_S: "fle.s"
+    eqasm_insn.FEQ_S: "feq.s",
+    eqasm_insn.FLT_S: "flt.s",
+    eqasm_insn.FLE_S: "fle.s"
 }
 
 
@@ -124,6 +184,19 @@ CMP_FLAG = {'always': 0,
             'gt': 11
             }
 
+cmp_op = {
+    'eq': operator.eq,
+    'ne': operator.ne,
+    'ltu': operator.lt,
+    'geu': operator.ge,
+    'leu': operator.le,
+    'gtu': operator.ge,
+    'lt': operator.lt,
+    'ge': operator.ge,
+    'le': operator.le,
+    'gt': operator.ge
+}
+
 
 class Quantum_op():
     def __init__(self, name='QNOP', **kwargs):
@@ -141,7 +214,7 @@ class Quantum_op():
 
 
 class Instruction():
-    def __init__(self, name=InsnName.NOP, **kwargs):
+    def __init__(self, name=eqasm_insn.NOP, **kwargs):
         logger.debug(
             "constructing instruction: {} {}".format(name, str(kwargs)))
         self.name = name
@@ -168,7 +241,7 @@ class Instruction():
 
         # use to store quantum bundles
         self.pi = kwargs.pop('pi', 0)
-        if name == InsnName.BUNDLE:
+        if name == eqasm_insn.BUNDLE:
             # list of (operation, target reg) pairs
             q_ops = kwargs.pop('q_ops', None)
             if isinstance(q_ops, Quantum_op):
@@ -181,83 +254,96 @@ class Instruction():
 
             self.q_ops = q_ops
 
+        self._check_fields()
+
+    def _check_fields(self):
+        'Check if the instruction has already all required fields.'
+        required_fields = eqasm_insn_fields[self.name]
+        for field in required_fields:
+            if getattr(self, field) is None:
+                raise ValueError("The instruction {} does not have the required field '{}'.".format(
+                    self.name, field))
+
     def __str__(self):
         str_labels = " ".join([label + ': ' for label in self.labels])
         return str_labels + self.insn_str()
 
     def insn_str(self):
-        if self.name == InsnName.NOP:
+        if self.name == eqasm_insn.NOP:
             return 'NOP'
 
-        elif self.name == InsnName.STOP:
+        elif self.name == eqasm_insn.STOP:
             return 'STOP'
 
-        elif self.name == InsnName.QWAIT:
+        elif self.name == eqasm_insn.QWAIT:
             return "QWAIT {}".format(self.imm)
-        elif self.name == InsnName.QWAITR:
+        elif self.name == eqasm_insn.QWAITR:
             return "QWAITR r{}".format(self.rs)
 
-        elif (self.name == InsnName.BUNDLE):
+        elif (self.name == eqasm_insn.BUNDLE):
             return '{}, {}'.format(self.pi, ' | '.join([str(q_op) for q_op in self.q_ops]))
 
-        elif self.name == InsnName.SMIS:
+        elif self.name == eqasm_insn.SMIS:
             return "SMIS s{}, {}".format(self.si, self.sq_list)
 
-        elif self.name == InsnName.SMIT:
+        elif self.name == eqasm_insn.SMIT:
             return "SMIT t{}, {}".format(self.ti, self.tq_list)
 
-        elif self.name == InsnName.NOT:
+        elif self.name == eqasm_insn.NOT:
             return 'NOT r{}, r{}'.format(self.rd, self.rt)
 
-        elif self.name == InsnName.CMP:  # CMP Rs, Rt
+        elif self.name == eqasm_insn.CMP:  # CMP Rs, Rt
             return 'CMP r{}, r{}'.format(self.rs, self.rt)
 
-        elif self.name == InsnName.BR:
+        elif self.name == eqasm_insn.BR:
             return 'BR {}, {}'.format(self.cmp_flag.upper(), self.target_label)
 
-        elif self.name == InsnName.FBR:  # FBR <cmp_flag>, Rd
+        elif self.name == eqasm_insn.FBR:  # FBR <cmp_flag>, Rd
             print('rd type: ', type(self.rd))
             return 'FBR {}, r{}'.format(self.cmp_flag.upper(), self.rd)
 
-        elif self.name == InsnName.FMR:  # FMR rd, qs
+        elif self.name == eqasm_insn.FMR:  # FMR rd, qs
             return 'FMR r{}, q{}'.format(self.rd, self.qs)
 
-        elif self.name == InsnName.LDI:
+        elif self.name == eqasm_insn.LDI:
             return "LDI r{}, {}".format(self.rd, self.imm)
 
-        elif self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR, InsnName.MUL, InsnName.DIV, InsnName.REM]:
+        elif self.name in [eqasm_insn.ADD, eqasm_insn.SUB, eqasm_insn.AND,
+                           eqasm_insn.OR, eqasm_insn.XOR, eqasm_insn.MUL,
+                           eqasm_insn.DIV, eqasm_insn.REM]:
             return "{} r{}, r{}, r{}".format(int_arith_name[self.name].upper(), self.rd,
                                              self.rs, self.rt)
 
-        elif self.name == InsnName.LDUI:
+        elif self.name == eqasm_insn.LDUI:
             return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
 
-        elif self.name == InsnName.SW or self.name == InsnName.SB:
+        elif self.name == eqasm_insn.SW or self.name == eqasm_insn.SB:
             return "{} r{}, {}(r{})".format(str(self.name)[-2:], self.rs,
                                             self.imm, self.rt)
 
-        elif (self.name == InsnName.LB or self.name == InsnName.LW
-                or self.name == InsnName.LBU):
+        elif (self.name == eqasm_insn.LB or self.name == eqasm_insn.LW
+                or self.name == eqasm_insn.LBU):
             return "{} r{}, {}(r{})".format(self.name, self.rd,
                                             self.imm, self.rt)
 
-        elif self.name == InsnName.FCVT_W_S:  # FCVT.W.S rd, fs
+        elif self.name == eqasm_insn.FCVT_W_S:  # FCVT.W.S rd, fs
             return "FCVT.W.S r{}, f{}".format(self.rd, self.fs)
 
-        elif self.name == InsnName.FCVT_S_W:  # FCVT.S.W fd, rs
+        elif self.name == eqasm_insn.FCVT_S_W:  # FCVT.S.W fd, rs
             return "FCVT.S.W f{}, r{}".format(self.fd, self.rs)
 
-        elif self.name == InsnName.FLW:
+        elif self.name == eqasm_insn.FLW:
             return "FLW f{}, {}(r{})".format(self.fd, self.imm, self.rs)
 
-        elif self.name == InsnName.FSW:
+        elif self.name == eqasm_insn.FSW:
             return "FSW f{}, {}(r{})".format(self.fs, self.imm, self.rs)
 
-        elif self.name in [InsnName.FADD_S, InsnName.FSUB_S, InsnName.FMUL_S, InsnName.FDIV_S]:
+        elif self.name in [eqasm_insn.FADD_S, eqasm_insn.FSUB_S,
+                           eqasm_insn.FMUL_S, eqasm_insn.FDIV_S]:
             return "{} f{}, f{}, f{}".format(fp_arith_name[self.name].upper(), self.fd,
                                              self.fs, self.ft)
 
-        elif self.name in [InsnName.FEQ_S, InsnName.FLT_S, InsnName.FLE_S]:
+        elif self.name in [eqasm_insn.FEQ_S, eqasm_insn.FLT_S, eqasm_insn.FLE_S]:
             return "{} r{}, f{}, f{}".format(fp_cmp_insn[self.name].upper(), self.rd,
                                              self.fs, self.ft)
         else:
