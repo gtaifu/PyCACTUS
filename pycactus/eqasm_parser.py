@@ -106,15 +106,15 @@ class Eqasm_parser:
         '''
         p[0] = p[1]
 
-    def p_insn_fcvtws(self, p):
-        'insn_fcvtws : FCVT_W_S  f_reg COMMA r_reg'
-        insn = Instruction(InsnName.FCVT_W_S, fd=p[2], rs=p[4])
+    def p_insn_fcvtws(self, p):  # FCVT.W.S rd, fs
+        'insn_fcvtws : FCVT_W_S r_reg COMMA f_reg'
+        insn = Instruction(InsnName.FCVT_W_S, rd=p[2], fs=p[4])
         p[0] = insn
         self._instructions.append(insn)
 
-    def p_insn_fcvtsw(self, p):
-        'insn_fcvtsw : FCVT_S_W  r_reg COMMA f_reg'
-        insn = Instruction(InsnName.FCVT_S_W, rd=p[2], fs=p[4])
+    def p_insn_fcvtsw(self, p):  # FCVT.S.W fd, rs
+        'insn_fcvtsw : FCVT_S_W f_reg COMMA r_reg'
+        insn = Instruction(InsnName.FCVT_S_W, fd=p[2], rs=p[4])
         p[0] = insn
         self._instructions.append(insn)
 
@@ -234,9 +234,9 @@ class Eqasm_parser:
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_ld(self, p):  # lw/lb/lbu rd, imm10(rt)
-        '''insn_ld : LW r_reg COMMA r_reg LPAREN imm RPAREN
-                   | LB r_reg COMMA r_reg LPAREN imm RPAREN
-                   | LBU r_reg COMMA r_reg LPAREN imm RPAREN
+        '''insn_ld : LW r_reg COMMA imm LPAREN r_reg RPAREN
+                   | LB r_reg COMMA imm LPAREN r_reg RPAREN
+                   | LBU r_reg COMMA imm LPAREN r_reg RPAREN
         '''
 
         if (p[1]).lower() == 'lw':
@@ -332,6 +332,9 @@ class Eqasm_parser:
                     | OR r_reg COMMA r_reg COMMA r_reg
                     | XOR r_reg COMMA r_reg COMMA r_reg
                     | AND r_reg COMMA r_reg COMMA r_reg
+                    | MUL r_reg COMMA r_reg COMMA r_reg
+                    | DIV r_reg COMMA r_reg COMMA r_reg
+                    | REM r_reg COMMA r_reg COMMA r_reg
         '''
         insn_name = inv_int_arith_name[p[1]]
         insn = Instruction(insn_name, rd=p[2], rs=p[4], rt=p[6])
@@ -532,18 +535,15 @@ class Eqasm_parser:
         p[0] = p[1]
         logger_yacc.info("condition: {}".format(p[0]))
 
-    # def p_error(self, p):
-    #     col = self.find_column(self.lexer.data, p)
-    #     print("Error near line", str(self.lexer.lineno), 'Column', col)
-
     def p_error(self, p):
         if not p:
             logger_yacc.info("Successfully parsed the entire file.")
             return
 
         p.lexpos = col = self.find_column(self.lexer.data, p)
-        error_msg = "Syntax error: Found unmatched {0}. Skip line {1} and continue ...".format(
-            p, str(self.lexer.lineno), col)
+        lines = self.lexer.data.split('\n')
+        error_msg = "Syntax error: Found unmatched {0}. Skip line {1}:  {2}".format(
+            p, self.lexer.lineno, lines[self.lexer.lineno-1])
         self.error_list.append(error_msg)
         logger_yacc.error(error_msg)
 

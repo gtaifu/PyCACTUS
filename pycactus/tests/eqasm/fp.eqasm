@@ -1,9 +1,10 @@
 LDI r3, 3
 LDI r4, 5
 LDI r5, 7
-fcvt.w.s f0, r3
-fcvt.w.s f1, r4
-fcvt.w.s f2, r5
+fcvt.s.w f0, r3
+fcvt.s.w f1, r4
+fcvt.s.w f2, r5
+FCVT.w.s r0, f0
 fdiv.s f3, f0, f1
 fdiv.s f4, f1, f2
 fadd.s f5, f3, f4

@@ -1,3 +1,4 @@
+import operator
 from enum import Enum, auto
 from pycactus.utils import *
 
@@ -42,6 +43,9 @@ class InsnName(Enum):
     OR = auto()
     XOR = auto()
     AND = auto()
+    MUL = auto()
+    DIV = auto()
+    REM = auto()
 
     LDUI = auto()  # LDUI Rd, Rs, imm15
 
@@ -51,8 +55,8 @@ class InsnName(Enum):
     SB = auto()
     SW = auto()
 
-    FCVT_W_S = auto()  # FCVT.W.S fd, rs
-    FCVT_S_W = auto()  # FCVT.S.W rd, fs
+    FCVT_W_S = auto()  # FCVT.W.S rd, fs
+    FCVT_S_W = auto()  # FCVT.S.W fd, rs
     FLW = auto()       # FLW fd, imm(rs)
     FSW = auto()       # FSW fs, imm(rs)
     FADD_S = auto()    # FADD.S fd, fs1, fs2
@@ -69,7 +73,21 @@ int_arith_name = {
     InsnName.SUB: "sub",
     InsnName.AND: "and",
     InsnName.OR: "or",
-    InsnName.XOR: "xor"
+    InsnName.XOR: "xor",
+    InsnName.MUL: "mul",
+    InsnName.DIV: "div",
+    InsnName.REM: "rem"
+}
+
+int_op = {
+    InsnName.ADD: operator.add,
+    InsnName.SUB: operator.sub,
+    InsnName.AND: operator.and_,
+    InsnName.OR: operator.or_,
+    InsnName.XOR: operator.xor,
+    InsnName.MUL: operator.mul,
+    InsnName.DIV: operator.div,
+    InsnName.REM: operator.mod
 }
 
 inv_int_arith_name = {v: k for k, v in int_arith_name.items()}
@@ -207,7 +225,7 @@ class Instruction():
         elif self.name == InsnName.LDI:
             return "LDI r{}, {}".format(self.rd, self.imm)
 
-        elif self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR]:
+        elif self.name in [InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR, InsnName.MUL, InsnName.DIV, InsnName.REM]:
             return "{} r{}, r{}, r{}".format(int_arith_name[self.name].upper(), self.rd,
                                              self.rs, self.rt)
 
@@ -223,11 +241,11 @@ class Instruction():
             return "{} r{}, {}(r{})".format(self.name, self.rd,
                                             self.imm, self.rt)
 
-        elif self.name == InsnName.FCVT_W_S:
-            return "FCVT.W.S f{}, r{}".format(self.fd, self.rs)
+        elif self.name == InsnName.FCVT_W_S:  # FCVT.W.S rd, fs
+            return "FCVT.W.S r{}, f{}".format(self.rd, self.fs)
 
-        elif self.name == InsnName.FCVT_S_W:
-            return "FCVT.S.W r{}, f{}".format(self.rd, self.fs)
+        elif self.name == InsnName.FCVT_S_W:  # FCVT.S.W fd, rs
+            return "FCVT.S.W f{}, r{}".format(self.fd, self.rs)
 
         elif self.name == InsnName.FLW:
             return "FLW f{}, {}(r{})".format(self.fd, self.imm, self.rs)
@@ -244,9 +262,3 @@ class Instruction():
                                              self.fs, self.ft)
         else:
             return "{}".format(self.name)
-
-    # def is_classical(self):
-    #     return self.insn_type == InsnType.CLASSICAL
-
-    # def is_quantum(self):
-    #     return self.insn_type == InsnType.QUANTUM

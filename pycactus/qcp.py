@@ -110,34 +110,60 @@ class Quantum_control_processor():
 
         self.process_insn(insn)  # execute
 
-    def write_gpr(self, rd: int, value: BitArray):
-        '''Update the target GPR `rd` with the `value`.
+    def write_gpr_value(self, rd: int, **kwargs):
+        '''Write the target GPR `rd` with the value specified by a key-word argument.
+
         Args:
         - `rd` (int): the GPR number in the GPR file.
-        - `value` (BitArray): the value to write.
+        - kwargs: the key-word argument specifying the value to write, which could be:
+          + `int`
+          + `uint`
 
-        Note: the value should be converted into the BitArray format.
+        Example:
+            `self.write_gpr_value(3, int=100)`
         '''
-        if isinstance(value, int):
-            value = BitArray(int=value, length=32)
+
+        reg_width = len(self.gprf[rd])
+
+        assert(len(kwargs) == 1 and list(kwargs.keys())[0] in ['int', 'uint'])
+        bit_array = BitArray(length=reg_width, **kwargs)
+
+        self.write_gpr_bits(rd, bit_array)
+
+    def write_gpr_bits(self, rd: int, value: BitArray):
+        '''Update the target GPR `rd` with the BitArray `value`.
+        Args:
+        - `rd` (int): the GPR number in the GPR file.
+        - `value` (BitArray): the BitArray-format value to write.
+        '''
         self.gprf.write(rd, value)
 
-    def write_fpr(self, fd: int, value: BitArray):
-        '''Update the target FP register `fd` with the `value`
+    def write_fpr_value(self, fd: int, value: float):
+        '''Write the target GPR `fd` with the FP `value`.
+
+        Args:
+        - `fd` (int): the GPR number in the GPR file.
+        - `value`: the FP value to write.
+
+        Example:
+            `self.write_gpr_value(3, 100.0)`
+        '''
+        reg_width = len(self.gprf[fd])
+        bit_array = BitArray(length=reg_width, float=value)
+        self.write_fpr_bits(fd, bit_array)
+
+    def write_fpr_bits(self, fd: int, value: BitArray):
+        '''Update the target FP register `fd` with the BitArray `value`.
         Args:
         - `rd` (int): the GPR number in the GPR file.
-        - `value` (BitArray): the value to write.
-
-        Note: the floating point value should be converted into the BitArray format.
+        - `value` (BitArray): the BitArray value to write.
         '''
-        if isinstance(value, int):
-            value = BitArray(int=value, length=32)
         self.fprf.write(fd, value)
 
-    def read_gpr_unsigned(self, rs: int):
+    def read_gpr_uint(self, rs: int):
         return self.gprf.read_unsigned(rs)
 
-    def read_gpr_signed(self, rs: int):
+    def read_gpr_int(self, rs: int):
         return self.gprf.read_signed(rs)
 
     def print_gpr(self, rd):
@@ -168,7 +194,7 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rt is not None)
             print("~self.gprf[insn.rt]: ", ~self.gprf[insn.rt])
-            self.write_gpr(insn.rd, ~self.gprf[insn.rt])
+            self.write_gpr_bits(insn.rd, ~self.gprf[insn.rt])
             self.pc += 1             # update the PC
 
         elif insn.name == InsnName.CMP:
@@ -179,21 +205,21 @@ class Quantum_control_processor():
             self.cmp_flags[CMP_FLAG['ne']] = (
                 self.gprf[insn.rs] != self.gprf[insn.rt])
             self.cmp_flags[CMP_FLAG['ltu']] = (
-                self.read_gpr_unsigned(insn.rs) < self.read_gpr_unsigned(insn.rt))
+                self.read_gpr_uint(insn.rs) < self.read_gpr_uint(insn.rt))
             self.cmp_flags[CMP_FLAG['geu']] = (
-                self.read_gpr_unsigned(insn.rs) >= self.read_gpr_unsigned(insn.rt))
+                self.read_gpr_uint(insn.rs) >= self.read_gpr_uint(insn.rt))
             self.cmp_flags[CMP_FLAG['leu']] = (
-                self.read_gpr_unsigned(insn.rs) <= self.read_gpr_unsigned(insn.rt))
+                self.read_gpr_uint(insn.rs) <= self.read_gpr_uint(insn.rt))
             self.cmp_flags[CMP_FLAG['gtu']] = (
-                self.read_gpr_unsigned(insn.rs) > self.read_gpr_unsigned(insn.rt))
+                self.read_gpr_uint(insn.rs) > self.read_gpr_uint(insn.rt))
             self.cmp_flags[CMP_FLAG['lt']] = (
-                self.read_gpr_signed(insn.rs) < self.read_gpr_signed(insn.rt))
+                self.read_gpr_int(insn.rs) < self.read_gpr_int(insn.rt))
             self.cmp_flags[CMP_FLAG['ge']] = (
-                self.read_gpr_signed(insn.rs) >= self.read_gpr_signed(insn.rt))
+                self.read_gpr_int(insn.rs) >= self.read_gpr_int(insn.rt))
             self.cmp_flags[CMP_FLAG['le']] = (
-                self.read_gpr_signed(insn.rs) <= self.read_gpr_signed(insn.rt))
+                self.read_gpr_int(insn.rs) <= self.read_gpr_int(insn.rt))
             self.cmp_flags[CMP_FLAG['gt']] = (
-                self.read_gpr_signed(insn.rs) > self.read_gpr_signed(insn.rt))
+                self.read_gpr_int(insn.rs) > self.read_gpr_int(insn.rt))
 
             self.pc += 1             # update the PC
 
@@ -211,13 +237,14 @@ class Quantum_control_processor():
         elif insn.name == InsnName.FBR:
             assert(insn.rd is not None)
             assert(insn.cmp_flag is not None)
-            self.write_gpr(insn.rd, self.cmp_flags[CMP_FLAG[insn.cmp_flag]])
+            cmp_res = self.cmp_flags[CMP_FLAG[insn.cmp_flag]]
+            self.write_gpr_value(insn.rd, int=cmp_res)
             self.pc += 1             # update the PC
 
         elif insn.name == InsnName.FMR:
             assert(insn.rd is not None)
             assert(insn.qs is not None)
-            self.write_gpr(insn.rd, self.msmt_result[insn.qs])
+            self.write_gpr_value(insn.rd, int=self.msmt_result[insn.qs])
             self.pc += 1             # update the PC
 
         elif insn.name == InsnName.LDI:
@@ -225,8 +252,7 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            self.write_gpr(insn.rd, BitArray(int=insn.imm,
-                                             length=len(self.gprf[insn.rd])))
+            self.write_gpr_value(insn.rd, int=insn.imm)
 
             self.pc += 1             # update the PC
 
@@ -235,7 +261,8 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.write_gpr(insn.rd, self.gprf[insn.rs] + self.gprf[insn.rt])
+            self.write_gpr_bits(insn.rd,
+                                self.gprf[insn.rs] + self.gprf[insn.rt])
 
             self.pc += 1             # update the PC
 
@@ -243,7 +270,8 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.write_gpr(insn.rd, self.gprf[insn.rs] - self.gprf[insn.rt])
+            self.write_gpr_bits(insn.rd,
+                                self.gprf[insn.rs] - self.gprf[insn.rt])
 
             self.pc += 1             # update the PC
 
@@ -251,7 +279,41 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.write_gpr(insn.rd, self.gprf[insn.rs] & self.gprf[insn.rt])
+            self.write_gpr_bits(insn.rd,
+                                self.gprf[insn.rs] & self.gprf[insn.rt])
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.MUL:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+
+            mul_res = self.read_gpr_int(insn.rs) *\
+                self.read_gpr_int(insn.rt)
+
+            self.write_gpr_value(insn.rd, int=mul_res)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.DIV:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+            div_res = self.read_gpr_int(insn.rs) / self.read_gpr_int(insn.rt)
+
+            self.write_gpr_value(insn.rd, int=div_res)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == InsnName.REM:
+            assert(insn.rd is not None)
+            assert(insn.rs is not None)
+            assert(insn.rt is not None)
+
+            rem_res = self.read_gpr_int(insn.rs) % self.read_gpr_int(insn.rt)
+
+            self.write_gpr_value(insn.rd, int=rem_res)
 
             self.pc += 1             # update the PC
 
@@ -259,7 +321,8 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.write_gpr(insn.rd, self.gprf[insn.rs] | self.gprf[insn.rt])
+            self.write_gpr_bits(
+                insn.rd, self.gprf[insn.rs] | self.gprf[insn.rt])
 
             self.pc += 1             # update the PC
 
@@ -267,7 +330,8 @@ class Quantum_control_processor():
             assert(insn.rd is not None)
             assert(insn.rs is not None)
             assert(insn.rt is not None)
-            self.write_gpr(insn.rd, self.gprf[insn.rs] ^ self.gprf[insn.rt])
+            self.write_gpr_bits(
+                insn.rd, self.gprf[insn.rs] ^ self.gprf[insn.rt])
 
             self.pc += 1             # update the PC
 
@@ -279,7 +343,8 @@ class Quantum_control_processor():
             # assumed imm is already interpreted as unsigned integer
             composed_bitstring = BitArray(
                 uint=insn.imm, length=15) + self.gprf[insn.rs][15:32]
-            self.write_gpr(insn.rd, composed_bitstring)
+
+            self.write_gpr_bits(insn.rd, composed_bitstring)
 
             self.pc += 1             # update the PC
 
@@ -289,9 +354,10 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_word = self.data_mem.read_word(addr)
-            self.write_gpr(insn.rd, ret_word)
+
+            self.write_gpr_bits(insn.rd, ret_word)
 
             self.pc += 1             # update the PC
 
@@ -301,7 +367,7 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_byte = self.data_mem.read_byte(addr)
 
             if insn.name == InsnName.LB:
@@ -311,7 +377,7 @@ class Quantum_control_processor():
                 # unsigned extension
                 se_word = BitArray(uint=ret_byte.uint, length=32)
 
-            self.write_gpr(insn.rd, se_word)
+            self.write_gpr_bits(insn.rd, se_word)
 
             self.pc += 1             # update the PC
 
@@ -321,7 +387,7 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            addr = self.read_gpr_uint(insn.rt) + insn.imm
             self.data_mem.write_word(addr, self.gprf.read(insn.rs))
 
             self.pc += 1             # update the PC
@@ -332,7 +398,7 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rt) + insn.imm
+            addr = self.read_gpr_uint(insn.rt) + insn.imm
             self.data_mem.write_byte(addr, self.gprf.read(insn.rs)[24:32])
 
             self.pc += 1             # update the PC
@@ -350,27 +416,26 @@ class Quantum_control_processor():
             self.pc += 1             # update the PC
 
         # ------------------------- FP operations -------------------------
-        elif insn.name == InsnName.FCVT_S_W:
-            # Convert the 32-bit FP number stored in fs into a 32-bit
-            # integer and store it in rd.
+        elif insn.name == InsnName.FCVT_W_S:
+            # Convert the 32-bit FP number in fs into a 32-bit signed integer,
+            # and store it in rd.
             assert(insn.rd is not None)
             assert(insn.fs is not None)
 
             float_value = self.fprf[insn.fs].float()
-            self.write_gpr(insn.rd, BitArray(
-                int=int(float_value), length=len(self.gprf[insn.rd])))
+
+            self.write_gpr_value(insn.rd, int=int(float_value))
 
             self.pc += 1             # update the PC
 
-        elif insn.name == InsnName.FCVT_W_S:
-            # Convert the 32-bit signed integer in rs to a 32-bit FP number,
+        elif insn.name == InsnName.FCVT_S_W:
+            # Convert a 32-bit signed integer in rs into a 32-bit FP number,
             # and store it in fd.
             assert(insn.fd is not None)
             assert(insn.rs is not None)
 
-            int_value = self.read_gpr_signed(insn.rs)
-            self.write_fpr(insn.fd, BitArray(
-                float=int_value, length=len(self.fprf[insn.fd])))
+            int_value = self.read_gpr_int(insn.rs)
+            self.write_fpr_value(insn.fd, value=int_value)
 
             self.pc += 1             # update the PC
 
@@ -380,7 +445,7 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rs) + insn.imm
+            addr = self.read_gpr_uint(insn.rs) + insn.imm
             self.data_mem.write_word(addr, self.fprf.read(insn.fs))
 
             self.pc += 1             # update the PC
@@ -391,9 +456,9 @@ class Quantum_control_processor():
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
-            addr = self.read_gpr_unsigned(insn.rs) + insn.imm
+            addr = self.read_gpr_uint(insn.rs) + insn.imm
             ret_word = self.data_mem.read_word(addr)
-            self.write_fpr(insn.fd, ret_word)
+            self.write_fpr_bits(insn.fd, ret_word)
 
             self.pc += 1             # update the PC
 
@@ -401,7 +466,8 @@ class Quantum_control_processor():
             assert(insn.fd is not None)
             assert(insn.fs is not None)
             assert(insn.ft is not None)
-            self.write_fpr(insn.fd, self.fprf[insn.fs] + self.fprf[insn.ft])
+            self.write_fpr_bits(
+                insn.fd, self.fprf[insn.fs] + self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
@@ -409,7 +475,8 @@ class Quantum_control_processor():
             assert(insn.fd is not None)
             assert(insn.fs is not None)
             assert(insn.ft is not None)
-            self.write_fpr(insn.fd, self.fprf[insn.fs] - self.fprf[insn.ft])
+            self.write_fpr_bits(
+                insn.fd, self.fprf[insn.fs] - self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
@@ -417,7 +484,8 @@ class Quantum_control_processor():
             assert(insn.fd is not None)
             assert(insn.fs is not None)
             assert(insn.ft is not None)
-            self.write_fpr(insn.fd, self.fprf[insn.fs] * self.fprf[insn.ft])
+            self.write_fpr_bits(
+                insn.fd, self.fprf[insn.fs] * self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
@@ -425,7 +493,8 @@ class Quantum_control_processor():
             assert(insn.fd is not None)
             assert(insn.fs is not None)
             assert(insn.ft is not None)
-            self.write_fpr(insn.fd, self.fprf[insn.fs] / self.fprf[insn.ft])
+            self.write_fpr_bits(
+                insn.fd, self.fprf[insn.fs] / self.fprf[insn.ft])
 
             self.pc += 1             # update the PC
 
@@ -434,8 +503,7 @@ class Quantum_control_processor():
             assert(insn.fs is not None)
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() == self.fprf[insn.ft].float())
-            self.write_gpr(insn.rd, BitArray(
-                int=res, length=len(self.gprf[insn.rd])))
+            self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 
@@ -444,8 +512,7 @@ class Quantum_control_processor():
             assert(insn.fs is not None)
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() < self.fprf[insn.ft].float())
-            self.write_gpr(insn.rd, BitArray(
-                int=res, length=len(self.gprf[insn.rd])))
+            self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 
@@ -454,8 +521,7 @@ class Quantum_control_processor():
             assert(insn.fs is not None)
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() <= self.fprf[insn.ft].float())
-            self.write_gpr(insn.rd, BitArray(
-                int=res, length=len(self.gprf[insn.rd])))
+            self.write_gpr_value(insn.rd, int=res)
 
             self.pc += 1             # update the PC
 

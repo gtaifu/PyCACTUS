@@ -8,14 +8,14 @@ A Python-based, functional eQASM simulator without modeling timing behavior.
 ## Floating-Point (FP) Instructions
 ### Conversion
 ```
-FCVT.W.S fd, rs
+FCVT.W.S rd, fs
 ```
-Convert the 32-bit signed integer in rs to a 32-bit FP number, and store it in fd.
+Convert the 32-bit FP number in fs into a 32-bit signed integer, and store it in rd.
 
 ```
-FCVT.S.W rd, fs
+FCVT.S.W fd, rs
 ```
-The inverse of the above.
+Convert a 32-bit signed integer in rs into a 32-bit FP number, and store it in fd.
 
 ### Load & Store
 
