@@ -8,14 +8,13 @@ fdiv.s f3, f0, f1
 fdiv.s f4, f1, f2
 fadd.s f5, f3, f4
 fmul.s f6, f3, f4
-# fcvt.s.w r5, f3
-# flw f1, 100(r3)
-# fsw f2, 100000(r4)
-# fadd.s f2, f1, f4
-# fsub.s f2, f1, f4
-# fmul.s f2, f1, f4
-# fdiv.s f2, f1, f4
-# feq.s r1, f3, f3
-# fle.s r1, f3, f4
-# flt.s r1, f6, f3
+fsub.s f7, f3, f4
+feq.s r1, f3, f3
+feq.s r1, f4, f3
+fle.s r1, f3, f4
+fle.s r1, f4, f3
+flt.s r1, f6, f3
+flt.s r1, f3, f6
+fsw f2, 100(r4)
+flw f1, 100(r4)
 stop

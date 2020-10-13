@@ -376,7 +376,7 @@ class Quantum_control_processor():
 
         elif insn.name == InsnName.FSW:
             assert(insn.fs is not None)
-            assert(insn.rr is not None)
+            assert(insn.rs is not None)
             assert(insn.imm is not None)
 
             # assumed imm is already interpreted as signed integer
@@ -435,7 +435,7 @@ class Quantum_control_processor():
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() == self.fprf[insn.ft].float())
             self.write_gpr(insn.rd, BitArray(
-                int=res, length=self.gprf[insn.rd]))
+                int=res, length=len(self.gprf[insn.rd])))
 
             self.pc += 1             # update the PC
 
@@ -445,7 +445,7 @@ class Quantum_control_processor():
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() < self.fprf[insn.ft].float())
             self.write_gpr(insn.rd, BitArray(
-                int=res, length=self.gprf[insn.rd]))
+                int=res, length=len(self.gprf[insn.rd])))
 
             self.pc += 1             # update the PC
 
@@ -455,7 +455,7 @@ class Quantum_control_processor():
             assert(insn.ft is not None)
             res = int(self.fprf[insn.fs].float() <= self.fprf[insn.ft].float())
             self.write_gpr(insn.rd, BitArray(
-                int=res, length=self.gprf[insn.rd]))
+                int=res, length=len(self.gprf[insn.rd])))
 
             self.pc += 1             # update the PC
 
