@@ -9,7 +9,7 @@ import pycactus.global_config as gc
 from .qubit_state_sim.if_qubit_sim import If_qubit_sim
 
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class Quantum_control_processor():
@@ -78,6 +78,7 @@ class Quantum_control_processor():
         self.reset()
         self.insn_mem = insns
         self.parse_labels()
+        return True
 
     def parse_labels(self):
         self.label_addr = {}
@@ -176,6 +177,8 @@ class Quantum_control_processor():
         while (self.stop_bit == 0):
             self.advance_one_cycle()
 
+        return True
+
     def process_insn(self, insn):
         # ------------------------- no operand -------------------------
         if insn.name == eqasm_insn.STOP:
@@ -215,9 +218,7 @@ class Quantum_control_processor():
 
         elif insn.name == eqasm_insn.BR:
             if self.cmp_flags[CMP_FLAG[insn.cmp_flag]]:
-                print("current PC: ", self.pc)
                 self.pc = self.label_addr[insn.target_label]
-                print("next pc: ", self.pc)
             else:
                 self.pc += 1
 

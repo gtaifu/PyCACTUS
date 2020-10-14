@@ -1,7 +1,9 @@
+import logging
 from bitstring import BitArray
 from pycactus.utils import get_logger
 
 logger = get_logger((__name__).split('.')[-1])
+logger.setLevel(logging.WARNING)
 
 
 class Bit_array_cell():

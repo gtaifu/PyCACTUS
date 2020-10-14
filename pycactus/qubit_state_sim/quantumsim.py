@@ -41,5 +41,9 @@ class Quantumsim(If_qubit_sim):
 
     def measure_qubit(self, qubit):
         logger.info("measure qubit: {}".format(qubit))
+        self.quantumsim.prepare_idling_ptm()
+        self.quantumsim.apply_ptm(qubit)
         self.quantumsim.apply_measurement(qubit)
-        return self.quantumsim.return_measurement_result()
+        msmt_result = self.quantumsim.return_measurement_result()
+        print("measurement qubit {}, get result: {}.".format(qubit, msmt_result))
+        return msmt_result

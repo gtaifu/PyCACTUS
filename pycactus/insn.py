@@ -312,7 +312,6 @@ class Instruction():
             return 'BR {}, {}'.format(self.cmp_flag.upper(), self.target_label)
 
         elif self.name == eqasm_insn.FBR:  # FBR <cmp_flag>, Rd
-            print('rd type: ', type(self.rd))
             return 'FBR {}, r{}'.format(self.cmp_flag.upper(), self.rd)
 
         elif self.name == eqasm_insn.FMR:  # FMR rd, qs

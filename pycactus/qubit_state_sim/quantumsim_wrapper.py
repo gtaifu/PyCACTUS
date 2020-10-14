@@ -53,7 +53,7 @@ class interface_quantumsim:
         self.measurements = {}
         self.current_measurement = None
 
-        self.error_on = True
+        self.error_on = False
 
     def init_dm(self, num_qubit):
 
