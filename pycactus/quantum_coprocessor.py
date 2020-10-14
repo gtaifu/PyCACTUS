@@ -32,4 +32,4 @@ class Quantum_coprocessor(If_backend):
         self.qcp.run()
 
     def read_result(self):
-        raise NotImplementedError
+        return self.qcp.get_data_mem()

@@ -6,6 +6,9 @@ class Memory():
         self.size = size
         self._mem = bytearray(size)
 
+    def get_entire_mem(self):
+        return self._mem
+
     def _check_addr(self, addr):
         if addr < 0:
             raise ValueError("Given address ({}) is less than 0".format(addr))

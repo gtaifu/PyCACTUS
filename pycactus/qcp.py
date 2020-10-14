@@ -36,6 +36,9 @@ class Quantum_control_processor():
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
         self.reset()
 
+    def get_data_mem(self):
+        return self.data_mem.get_entire_mem()
+
     def reset(self):
         '''Completely reset the QCP state. Except the data memory, all memory is cleaned.
         Should be used before uploading a new program.
