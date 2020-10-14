@@ -7,8 +7,9 @@ eqasm_dir = cur_dir / 'eqasm'
 sim = Quantum_coprocessor()
 
 pf = eqasm_dir / 'bellstate_loop.eqasm'
-pf = eqasm_dir / 'test_add.eqasm'
+pf = eqasm_dir / 'fp.eqasm'
 pf = eqasm_dir / 'bundle_test.eqasm'
+pf = eqasm_dir / 'test_add.eqasm'
 # pf = r'D:\GitHub\git_pcl\PyCACTUS\pycactus\tests\eqasm\bellstate_loop.eqasm'
 # pf = r'D:\GitHub\git_pcl\PyCACTUS\pycactus\tests\eqasm\test_assembly.qisa'
 
