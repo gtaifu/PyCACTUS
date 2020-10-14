@@ -139,6 +139,8 @@ int_arith_name = {
     eqasm_insn.REM: "rem"
 }
 
+inv_int_arith_name = {v: k for k, v in int_arith_name.items()}
+
 int_op = {
     eqasm_insn.ADD: operator.add,
     eqasm_insn.SUB: operator.sub,
@@ -150,8 +152,6 @@ int_op = {
     eqasm_insn.REM: operator.mod
 }
 
-inv_int_arith_name = {v: k for k, v in int_arith_name.items()}
-
 fp_arith_name = {
     eqasm_insn.FADD_S: "fadd.s",
     eqasm_insn.FSUB_S: "fsub.s",
@@ -161,10 +161,23 @@ fp_arith_name = {
 
 inv_fp_arith_name = {v: k for k, v in fp_arith_name.items()}
 
+fp_op = {
+    eqasm_insn.FADD_S: operator.add,
+    eqasm_insn.FSUB_S: operator.sub,
+    eqasm_insn.FMUL_S: operator.mul,
+    eqasm_insn.FDIV_S: operator.truediv
+}
+
 fp_cmp_insn = {
     eqasm_insn.FEQ_S: "feq.s",
     eqasm_insn.FLT_S: "flt.s",
     eqasm_insn.FLE_S: "fle.s"
+}
+
+fp_cmp_op = {
+    eqasm_insn.FEQ_S: operator.eq,
+    eqasm_insn.FLT_S: operator.lt,
+    eqasm_insn.FLE_S: operator.le
 }
 
 

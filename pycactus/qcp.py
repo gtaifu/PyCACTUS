@@ -237,15 +237,15 @@ class Quantum_control_processor():
         # InsnName.ADD, InsnName.SUB, InsnName.AND, InsnName.OR, InsnName.XOR,
         # InsnName.MUL, InsnName.DIV, InsnName.REM
         elif insn.name in int_op.keys():
-            self.write_gpr_bits(insn.rd,
-                                int_op[insn.name](self.gprf[insn.rs], self.gprf[insn.rt]))
+            res = int_op[insn.name](self.gprf[insn.rs], self.gprf[insn.rt])
+            self.write_gpr_bits(insn.rd, res)
 
             self.pc += 1             # update the PC
 
         elif insn.name == eqasm_insn.LDUI:
             # assumed imm is already interpreted as unsigned integer
-            composed_bitstring = BitArray(
-                uint=insn.imm, length=15) + self.gprf[insn.rs][15:32]
+            imm15 = BitArray(uint=insn.imm, length=15)
+            composed_bitstring = imm15 + self.gprf[insn.rs][15:32]
 
             self.write_gpr_bits(insn.rd, composed_bitstring)
 
@@ -265,11 +265,9 @@ class Quantum_control_processor():
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_byte = self.data_mem.read_byte(addr)
 
-            if insn.name == eqasm_insn.LB:
-                # signed extension
+            if insn.name == eqasm_insn.LB:  # signed extension
                 se_word = BitArray(int=ret_byte.int, length=32)
-            else:  # LBU
-                # unsigned extension
+            else:                           # LBU, unsigned extension
                 se_word = BitArray(uint=ret_byte.uint, length=32)
 
             self.write_gpr_bits(insn.rd, se_word)
@@ -330,47 +328,17 @@ class Quantum_control_processor():
             self.write_fpr_bits(insn.fd, ret_word)
 
             self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FADD_S:
-            self.write_fpr_bits(
-                insn.fd, self.fprf[insn.fs] + self.fprf[insn.ft])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FSUB_S:
-            self.write_fpr_bits(
-                insn.fd, self.fprf[insn.fs] - self.fprf[insn.ft])
+        elif insn.name in fp_op.keys():
+            fp_res = fp_op[insn.name](self.fprf[insn.fs], self.fprf[insn.ft])
+            self.write_fpr_bits(insn.fd, fp_res)
 
             self.pc += 1             # update the PC
 
-        elif insn.name == eqasm_insn.FMUL_S:
-            self.write_fpr_bits(
-                insn.fd, self.fprf[insn.fs] * self.fprf[insn.ft])
+        elif insn.name in fp_cmp_op.keys():
+            res = int(fp_cmp_op[insn.name](
+                self.fprf[insn.fs].float(), self.fprf[insn.ft].float()))
 
-            self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FDIV_S:
-            self.write_fpr_bits(
-                insn.fd, self.fprf[insn.fs] / self.fprf[insn.ft])
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FEQ_S:
-            res = int(self.fprf[insn.fs].float() == self.fprf[insn.ft].float())
             self.write_gpr_value(insn.rd, int=res)
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FLT_S:
-            res = int(self.fprf[insn.fs].float() < self.fprf[insn.ft].float())
-            self.write_gpr_value(insn.rd, int=res)
-
-            self.pc += 1             # update the PC
-
-        elif insn.name == eqasm_insn.FLE_S:
-            res = int(self.fprf[insn.fs].float() <= self.fprf[insn.ft].float())
-            self.write_gpr_value(insn.rd, int=res)
-
             self.pc += 1             # update the PC
 
         # ------------------------- quantum operation -------------------------
