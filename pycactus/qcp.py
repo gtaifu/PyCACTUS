@@ -1,3 +1,4 @@
+from viztracer import VizTracer
 from pycactus.fpr import FPRF
 from bitstring import BitArray
 from .utils import *
@@ -6,18 +7,16 @@ from .insn import *
 from .gpr import *
 from .memory import Memory
 import pycactus.global_config as gc
-from .qubit_state_sim.if_qubit_sim import If_qubit_sim
 
 logger = get_logger((__name__).split('.')[-1])
+
+tracer = VizTracer()
 
 
 class Quantum_control_processor():
     def __init__(self, qubit_state_sim=None, start_addr=0, log_level=logging.WARNING,
                  max_exec_cycle=5000000):
-        assert(isinstance(qubit_state_sim, If_qubit_sim))
-
         self.qubit_state_sim = qubit_state_sim
-        self.set_log_level(log_level)
 
         # general purpose register file
         self.gprf = GPRF(num_gpr=gc.NUM_GPR, gpr_width=gc.GPR_WIDTH)
@@ -38,6 +37,7 @@ class Quantum_control_processor():
         self.reset()
         self.max_exec_cycle = max_exec_cycle
 
+        self.set_log_level(log_level)
         # self.exec_trace_fn = 'exec_trace.csv'
         # try:
         #     self.trace_f = open(self.exec_trace_fn, 'w')
@@ -46,6 +46,7 @@ class Quantum_control_processor():
 
     def set_log_level(self, log_level):
         logger.setLevel(log_level)
+        self.gprf.set_log_level(log_level)
 
     def set_max_exec_cycle(self, num_cycle: int):
         self.max_exec_cycle = num_cycle
@@ -133,10 +134,8 @@ class Quantum_control_processor():
             `self.write_gpr_value(3, int=100)`
         '''
 
-        reg_width = len(self.gprf[rd])
-
         assert(len(kwargs) == 1 and list(kwargs.keys())[0] in ['int', 'uint'])
-        bit_array = BitArray(length=reg_width, **kwargs)
+        bit_array = BitArray(length=gc.GPR_WIDTH, **kwargs)
 
         self.write_gpr_bits(rd, bit_array)
 
@@ -158,8 +157,7 @@ class Quantum_control_processor():
         Example:
             `self.write_gpr_value(3, 100.0)`
         '''
-        reg_width = len(self.gprf[fd])
-        bit_array = BitArray(length=reg_width, float=value)
+        bit_array = BitArray(length=gc.FPR_WIDTH, float=value)
         self.write_fpr_bits(fd, bit_array)
 
     def write_fpr_bits(self, fd: int, value: BitArray):
@@ -193,13 +191,15 @@ class Quantum_control_processor():
         self.process_insn(insn)  # execute
 
     def run(self):
-
+        tracer.start()
         while (self.stop_bit == 0):
             self.advance_one_cycle()
             if self.cycle > self.max_exec_cycle:
                 break
 
         logger.info("pycactus exits after executing {} cycles.".format(self.cycle))
+        tracer.stop()
+        tracer.save('inline_tracer.json')
         return True
 
     def process_insn(self, insn):

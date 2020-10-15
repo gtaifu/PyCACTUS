@@ -25,28 +25,28 @@ class Floating_point_register(Bit_array_cell):
         return "{}".format(self.bitstring.float)
 
     def __add__(self, other):
-        self.check_length(other)
+        # self.check_length(other)
         sum = self.bitstring.float + other.bitstring.float
         result = BitArray(float=sum, length=self._width)
 
         return result
 
     def __sub__(self, other):
-        self.check_length(other)
+        # self.check_length(other)
         res = self.bitstring.float - other.bitstring.float
         result = BitArray(float=res, length=self._width)
 
         return result
 
     def __mul__(self, other):
-        self.check_length(other)
+        # self.check_length(other)
         res = self.bitstring.float * other.bitstring.float
         result = BitArray(float=res, length=self._width)
 
         return result
 
     def __truediv__(self, other):
-        self.check_length(other)
+        # self.check_length(other)
         res = self.bitstring.float / other.bitstring.float
         result = BitArray(float=res, length=self._width)
 

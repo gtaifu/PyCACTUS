@@ -104,7 +104,7 @@ class Eqasm_lexer(object):
         'NEWLINE',
         'HEX',
         'BINARY',
-        'INTEGER',
+        'DECIMAL',
         'IDENTIFIER',
         'RREG',
         'FREG',
@@ -124,7 +124,7 @@ class Eqasm_lexer(object):
 
     def t_HEX(self, t):
         r'0x[0-9a-fA-F]+'
-        t.type = 'INTEGER'
+        # t.type = 'DECIMAL'
         logger_lex.debug('lex: [hex string: {}, value: {}]'.format(
             t.value, int(t.value, base=16)))
         t.value = int(t.value, base=16)
@@ -132,16 +132,16 @@ class Eqasm_lexer(object):
 
     def t_BINARY(self, t):
         r'0b[01]+'
-        t.type = 'INTEGER'
+        # t.type = 'DECIMAL'
         logger_lex.debug('lex: [bin string: {}, value: {}]'.format(
             t.value, int(t.value, base=2)))
         t.value = int(t.value, base=2)
         return t
 
-    def t_INTEGER(self, t):
+    def t_DECIMAL(self, t):
         r'[-]?\d+'
         t.value = int(t.value)
-        logger_lex.debug('lex: [integer string: {}, value: {}]'.format(
+        logger_lex.debug('lex: [DECIMAL string: {}, value: {}]'.format(
             t.value, int(t.value)))
 
         return t

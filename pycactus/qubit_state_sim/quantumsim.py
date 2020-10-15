@@ -1,3 +1,4 @@
+from logging import log
 from .quantumsim_wrapper import interface_quantumsim
 from .if_qubit_sim import If_qubit_sim
 from pycactus.utils import get_logger
@@ -7,7 +8,7 @@ logger = get_logger((__name__).split('.')[-1])
 
 
 class Quantumsim(If_qubit_sim):
-    def __init__(self, num_qubit: int):
+    def __init__(self, num_qubit: int, log_level=logging.WARNING):
         """
         Interface for the qubit state simulator .
         """
@@ -16,6 +17,7 @@ class Quantumsim(If_qubit_sim):
         self.quantumsim = interface_quantumsim()
         self.quantumsim.init_dm(num_qubit)
         self.quantumsim.print_classical_state()
+        self.set_log_level(log_level)
         logger.info("initialize quantumsim")
 
     def set_log_level(self, log_level):

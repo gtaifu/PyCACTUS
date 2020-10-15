@@ -26,7 +26,7 @@ class Eqasm_parser:
         self.tokens = self.lexer.tokens
         self.parse_dir = tempfile.mkdtemp(prefix='pycactus')
         # For yacc, also, write_tables = Bool and optimize = Bool
-        self.parser = yacc.yacc(module=self, debug=True,
+        self.parser = yacc.yacc(module=self, debug=False,
                                 outputdir=self.parse_dir)
 
         self._instructions = []
@@ -371,8 +371,8 @@ class Eqasm_parser:
     # quantum instruction elements
     # ---------------------------------------------------------------------
     def p_qbs(self, p):
-        '''qbs : optional_bs INTEGER COMMA
-               | optional_bs INTEGER
+        '''qbs : optional_bs integer COMMA
+               | optional_bs integer
         '''
         p[0] = p[2]
 
@@ -446,8 +446,8 @@ class Eqasm_parser:
         p[0] = p[1]
 
     def p_single_qubit_list(self, p):
-        '''single_qubit_list : INTEGER
-                            | single_qubit_list COMMA INTEGER'''
+        '''single_qubit_list : integer
+                            | single_qubit_list COMMA integer'''
 
         if (len(p) == 2):
             p[0] = [p[1]]
@@ -464,7 +464,7 @@ class Eqasm_parser:
         logger_yacc.debug("s_mask: {}".format(p[0]))
 
     def p_qubit_pair(self, p):
-        '''qubit_pair : LPAREN INTEGER COMMA INTEGER RPAREN'''
+        '''qubit_pair : LPAREN integer COMMA integer RPAREN'''
 
         # pycactus_debug('p_qubit_pair:', end='')
 
@@ -491,11 +491,18 @@ class Eqasm_parser:
         logger_yacc.debug("t_mask: {}".format(p[0]))
 
     def p_imm(self, p):
-        '''imm : INTEGER
+        '''imm : integer
         '''
 
         p[0] = p[1]
         logger_yacc.debug("imm: {}".format(p[0]))
+
+    def p_integer(self, p):
+        '''integer : BINARY
+                   | HEX
+                   | DECIMAL
+        '''
+        p[0] = p[1]
 
     def p_label_decl(self, p):
         'label_decl : IDENTIFIER COLON'

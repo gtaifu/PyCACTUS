@@ -121,13 +121,13 @@ eqasm_insn_fields = {
     eqasm_insn.FCVT_S_W: ['fd', 'rs'],        # FCVT.S.W fd, rs
     eqasm_insn.FLW: ['fd', 'imm', 'rs'],      # FLW fd, imm(rs)
     eqasm_insn.FSW: ['fs', 'imm', 'rs'],      # FSW fs, imm(rs)
-    eqasm_insn.FADD_S: ['fd', 'fs1', 'fs2'],  # FADD.S fd, fs1, fs2
-    eqasm_insn.FSUB_S: ['fd', 'fs1', 'fs2'],  # FSUB.S fd, fs1, fs2
-    eqasm_insn.FMUL_S: ['fd', 'fs1', 'fs2'],  # FMUL.S fd, fs1, fs2
-    eqasm_insn.FDIV_S: ['fd', 'fs1', 'fs2'],  # FDIV.S fd, fs1, fs2
-    eqasm_insn.FEQ_S: ['fd', 'fs1', 'fs2'],   # FEQ.S rd, fs1, fs2
-    eqasm_insn.FLT_S: ['fd', 'fs1', 'fs2'],   # FLT.S rd, fs1, fs2
-    eqasm_insn.FLE_S: ['fd', 'fs1', 'fs2']    # FLE.S rd, fs1, fs2
+    eqasm_insn.FADD_S: ['fd', 'fs', 'ft'],  # FADD.S fd, fs, ft
+    eqasm_insn.FSUB_S: ['fd', 'fs', 'ft'],  # FSUB.S fd, fs, ft
+    eqasm_insn.FMUL_S: ['fd', 'fs', 'ft'],  # FMUL.S fd, fs, ft
+    eqasm_insn.FDIV_S: ['fd', 'fs', 'ft'],  # FDIV.S fd, fs, ft
+    eqasm_insn.FEQ_S: ['rd', 'fs', 'ft'],   # FEQ.S rd, fs, ft
+    eqasm_insn.FLT_S: ['rd', 'fs', 'ft'],   # FLT.S rd, fs, ft
+    eqasm_insn.FLE_S: ['rd', 'fs', 'ft']    # FLE.S rd, fs, ft
 }
 
 int_arith_name = {

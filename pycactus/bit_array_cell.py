@@ -3,14 +3,15 @@ from bitstring import BitArray
 from pycactus.utils import get_logger
 
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.WARNING)
 
 
 class Bit_array_cell():
     def __init__(self, width=32):
         assert(isinstance(width, int))
         # the width is supposed not to change in the future
-        self.bitstring = BitArray(width)
+        self.uint = 0
+        self.int = 0
+        self.bitstring = self.update_value(BitArray(width))
         self._width = width
 
     @classmethod
@@ -21,9 +22,11 @@ class Bit_array_cell():
         return self._width
 
     def check_length(self, other):
-        if self.__len__() != len(other):
-            raise ValueError("Cannot perform addition on two bitstring with different"
-                             " length ({}, {})".format(self.__len__(), len(other)))
+        # comment the following code to improve execution speed.
+        # if self.__len__() != len(other):
+        #     raise ValueError("Cannot perform addition on two bitstring with different"
+        #                      " length ({}, {})".format(self.__len__(), len(other)))
+        pass
 
     def update_value(self, value: BitArray):
         '''Update the value of this register to `value`.
@@ -31,11 +34,13 @@ class Bit_array_cell():
           - `value` (BitArray): the value to write
         '''
         assert(isinstance(value, BitArray))
-        if self._width != len(value):
-            raise ValueError("Given value has a bitstring with a different length ({}) "
-                             " to the original length ({})".format(len(value), self._width))
+        # if self._width != len(value):
+        #     raise ValueError("Given value has a bitstring with a different length ({}) "
+        #                      " to the original length ({})".format(len(value), self._width))
 
         self.bitstring = value
+        self.uint = self.bitstring.uint
+        self.int = self.bitstring.int
 
     def __getitem__(self, item):
         return self.bitstring[item]
@@ -55,6 +60,10 @@ class Register_file():
         self.reg_symbol = base_register_type.reg_symbol()
         for i in range(num_reg):
             self.regs.append(base_register_type(reg_width))
+        self.set_log_level(logging.WARNING)
+
+    def set_log_level(self, level):
+        logger.setLevel(level)
 
     def dump(self):
         'Dump the content of the entire register file.'
@@ -77,15 +86,16 @@ class Register_file():
           - value (BitArray): the value to write
         '''
 
-        value_str = ''
-        if self.reg_symbol == 'f':
-            float_value = value.float
-            value_str = "float: {}".format(float_value)
-        else:
-            value_str = "int: {}, uint: {}".format(value.int, value.uint)
+        if logger.level is logging.DEBUG:
+            value_str = ''
+            if self.reg_symbol == 'f':
+                float_value = value.float
+                value_str = "float: {}".format(float_value)
+            else:
+                value_str = "int: {}, uint: {}".format(value.int, value.uint)
 
-        logger.debug("Updating register {}{} with bitstring {} ({}).".format(
-            self.reg_symbol, reg_dst, value, value_str))
+            logger.debug("Updating register {}{} with bitstring {} ({}). ".format(
+                self.reg_symbol, reg_dst, value, value_str))
 
         self.regs[reg_dst].update_value(value)
 
