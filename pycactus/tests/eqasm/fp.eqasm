@@ -1,0 +1,21 @@
+LDI r3, 3
+LDI r4, 5
+LDI r5, 7
+fcvt.s.w f0, r3
+fcvt.s.w f1, r4
+fcvt.s.w f2, r5
+FCVT.w.s r0, f0
+fdiv.s f3, f0, f1
+fdiv.s f4, f1, f2
+fadd.s f5, f3, f4
+fmul.s f6, f3, f4
+fsub.s f7, f3, f4
+feq.s r1, f3, f3
+feq.s r1, f4, f3
+fle.s r1, f3, f4
+fle.s r1, f4, f3
+flt.s r1, f6, f3
+flt.s r1, f3, f6
+fsw f2, 100(r4)
+flw f1, 100(r4)
+stop

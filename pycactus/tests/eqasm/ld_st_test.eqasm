@@ -1,0 +1,25 @@
+XOR r0, r0, r0
+ADDI r1, r0, 1
+LDI r2, 0x20000
+LDUI r2, r2, 0x1
+SW r0, 0x10000(r0)
+FCVT.S.W f0, r0
+BEQ r0, r0, function_0_end
+function_0_end:
+
+ADDI r3, r0, 0
+ADDI r4, r0, 0
+ADDI r5, r0, 0
+ADDI r6, r0, 20
+SW r6, 0x0(r5)
+LDI r7, 0xfffcc
+LDUI r7, r7, 0x20cf  # r7 should be 0x419fffcc
+SW r7, 0x4(r5)
+ADDI r8, r0, 0
+SW r8, 0x8(r5)
+LDI r9, 0x20000
+LDUI r9, r9, 0x1c69
+SW r9, 0xc(r5)
+BEQ r0, r0, function_null_end
+function_null_end:
+STOP

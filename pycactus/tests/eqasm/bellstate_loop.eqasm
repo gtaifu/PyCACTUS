@@ -1,0 +1,497 @@
+XOR r0, r0, r0
+ADDI r1, r0, 1
+LDI r2, 0x20000
+LDUI r2, r2, 0x1
+SW r0, 0x10000(r0)
+FCVT.S.W f0, r0
+LDI r3, 0x1000c
+LDUI r3, r3, 0x0
+LDI r4, 0x10018
+LDUI r4, r4, 0x0
+ADDI r4, r2, 0
+ADDI r5, r0, 1000
+SW r5, 0(r4)
+ADDI r2, r2, 4004
+ADDI r6, r4, 4
+ADDI r7, r0, 0
+ARRAY_0:
+CMP r7, r5
+NOP
+FBR LE, r8
+BNE r8, r1, ARRAY_0_END
+LDI r9, 0x1001c
+LDUI r9, r9, 0x0
+ADDI r9, r2, 0
+ADDI r10, r0, 2
+SW r10, 0(r9)
+ADDI r2, r2, 6
+SW r9, 0(r6)
+ADDI r6, r6, 4
+ADDI r7, r7, 1
+BEQ r0, r0, ARRAY_0
+ARRAY_0_END:
+LW r11, 0x10020(r0)
+LDI r11, 0x10024
+LDUI r11, r11, 0x0
+LW r12, 4(r4)
+SW r10, 0x1002c(r0)
+ADDI r13, r0, 0
+SW r13, 0(r3)
+SW r3, 0x10008(r0)
+SW r4, 0x10014(r0)
+SW r5, 0x10010(r0)
+ADDI r14, r0, 2
+SW r14, 0(r11)
+SW r11, 0x10020(r0)
+SB r1, 0x10028(r0)
+SB r0, 0x10029(r0)
+SW r9, 0x10018(r0)
+SW r12, 0x10030(r0)
+LDI r15, 0x10030
+LDUI r15, r15, 0x0
+LDI r16, 0x10020
+LDUI r16, r16, 0x0
+LW r17, 0(r15)
+LW r18, 0(r16)
+LW r19, 0(r18)
+LW r20, 0(r17)
+CMP r19, r20
+NOP
+FBR LE, r20
+BNE r20, r0, ARRAY_ALLOC_1_END
+ADDI r17, r2, 0
+SW r2, 0(r15)
+ADD r2, r2, r19
+ADDI r2, r2, 4
+ARRAY_ALLOC_1_END:
+SW r19, 0(r17)
+ADDI r21, r18, 4
+ADDI r22, r17, 4
+ADDI r23, r0, 0
+ARRAY_1:
+CMP r23, r19
+NOP
+FBR LT, r24
+BNE r24, r1, ARRAY_1_end
+LB r25, 0(r21)
+SB r25, 0(r22)
+ADDI r21, r21, 1
+ADDI r22, r22, 1
+ADDI r23, r23, 1
+BEQ r0, r0, ARRAY_1
+ARRAY_1_end:
+ADDI r16, r16, 4
+ADDI r15, r15, 4
+ADDI r26, r0, 1
+LW r5, 0x10010(r0)
+CMP r26, r5
+NOP
+FBR LT, r27
+SW r26, 0x1001c(r0)
+# storeToMem finishes
+labelwhile_1:
+LW r26, 0x1001c(r0)
+LW r5, 0x10010(r0)
+CMP r26, r5
+NOP
+FBR LT, r28
+BNE r28, r1, continue_1
+LW r29, 0x1004c(r0)
+LDI r29, 0x10050
+LDUI r29, r29, 0x0
+ADDI r30, r0, 4
+MUL r30, r30, r26
+ADDI r30, r30, 4
+LW r4, 0x10014(r0)
+ADD r30, r4, r30
+LW r30, 0(r30)
+SB r21, 0x10044(r0)
+SW r20, 0x10040(r0)
+SW r23, 0x10046(r0)
+SB r22, 0x10045(r0)
+SW r16, 0x10038(r0)
+SB r27, 0x1004a(r0)
+SW r15, 0x10034(r0)
+ADDI r31, r0, 2
+SW r31, 0(r29)
+SW r29, 0x1004c(r0)
+SB r1, 0x10054(r0)
+SB r0, 0x10055(r0)
+SB r28, 0x1004b(r0)
+SW r19, 0x1003c(r0)
+SW r30, 0x10058(r0)
+LDI r3, 0x10058
+LDUI r3, r3, 0x0
+LDI r4, 0x1004c
+LDUI r4, r4, 0x0
+LW r5, 0(r3)
+LW r6, 0(r4)
+LW r7, 0(r6)
+LW r8, 0(r5)
+CMP r7, r8
+NOP
+FBR LE, r8
+BNE r8, r0, ARRAY_ALLOC_2_END
+ADDI r5, r2, 0
+SW r2, 0(r3)
+ADD r2, r2, r7
+ADDI r2, r2, 4
+ARRAY_ALLOC_2_END:
+SW r7, 0(r5)
+ADDI r9, r6, 4
+ADDI r10, r5, 4
+ADDI r11, r0, 0
+ARRAY_2:
+CMP r11, r7
+NOP
+FBR LT, r12
+BNE r12, r1, ARRAY_2_end
+LB r13, 0(r9)
+SB r13, 0(r10)
+ADDI r9, r9, 1
+ADDI r10, r10, 1
+ADDI r11, r11, 1
+BEQ r0, r0, ARRAY_2
+ARRAY_2_end:
+ADDI r4, r4, 4
+ADDI r3, r3, 4
+LW r26, 0x1001c(r0)
+ADDI r14, r0, 1
+ADD r15, r26, r14
+ADD r26, r15, r0
+SW r26, 0x1001c(r0)
+BEQ r0, r0, labelwhile_1
+continue_1:
+SMIS s0, {0}
+SMIS s1, {1}
+ADDI r26, r0, 0
+LW r16, 0x10010(r0)
+CMP r26, r16
+NOP
+FBR LT, r17
+SW r26, 0x1001c(r0)
+# storeToMem finishes
+labelwhile_2:
+LW r26, 0x1001c(r0)
+LW r16, 0x10010(r0)
+CMP r26, r16
+NOP
+FBR LT, r18
+BNE r18, r1, continue_2
+LDI r19, 0x1007c
+LDUI r19, r19, 0x0
+LDI r19, 0x10080
+LDUI r19, r19, 0x0
+LDI r20, 0x10088
+LDUI r20, r20, 0x0
+LDI r20, 0x1008c
+LDUI r20, r20, 0x0
+MeasZ s0
+QWAIT 27
+QWAIT 1
+QWAIT 1
+QWAIT 1
+FMR r21, q0
+ADD r22, r21, r0
+BNE r22, r1, if_0_end
+1, rx180 s0
+if_0_end:
+function_3_end:
+
+MeasZ s1
+QWAIT 27
+QWAIT 1
+QWAIT 1
+QWAIT 1
+FMR r23, q1
+ADD r24, r23, r0
+BNE r24, r1, if_1_end
+1, rx180 s1
+if_1_end:
+function_4_end:
+
+continue_3:
+function_2_end:
+
+function_1_end:
+
+1, H s0
+2, H s1
+SMIT t0, {(0,1)}
+2, CZ t0
+2, H s1
+function_5_end:
+
+LDI r25, 0x1009e
+LDUI r25, r25, 0x0
+LDI r26, 0x100a6
+LDUI r26, r26, 0x0
+LDI r26, 0x100aa
+LDUI r26, r26, 0x0
+LDI r27, 0x100b6
+LDUI r27, r27, 0x0
+MeasZ s0
+QWAIT 27
+QWAIT 1
+QWAIT 1
+QWAIT 1
+FMR r28, q0
+ADD r29, r28, r0
+MeasZ s1
+QWAIT 27
+QWAIT 1
+QWAIT 1
+QWAIT 1
+FMR r30, q1
+ADD r31, r30, r0
+continue_4:
+LDI r25, 0x100c2
+LDUI r25, r25, 0x0
+SW r3, 0x1005c(r0)
+ADD r3, r29, r0
+SW r4, 0x10060(r0)
+ADD r4, r31, r0
+BEQ r0, r0, function_6_end
+function_6_end:
+
+ADDI r5, r0, 4
+LW r6, 0x1001c(r0)
+MUL r5, r5, r6
+ADDI r5, r5, 4
+SW r7, 0x10064(r0)
+LW r7, 0x10014(r0)
+ADD r5, r7, r5
+LW r5, 0(r5)
+SB r3, 0x100c6(r0)
+SB r4, 0x100c7(r0)
+SW r8, 0x10068(r0)
+SB r9, 0x1006c(r0)
+SB r10, 0x1006d(r0)
+SB r31, 0x100bb(r0)
+SW r11, 0x1006e(r0)
+SW r14, 0x100ca(r0)
+SW r15, 0x10072(r0)
+SB r18, 0x10077(r0)
+SB r17, 0x10076(r0)
+SB r22, 0x10098(r0)
+ADDI r8, r0, 2
+SW r8, 0(r25)
+SW r25, 0x1009a(r0)
+SB r24, 0x10099(r0)
+ADDI r9, r0, 2
+SW r9, 0(r27)
+SW r27, 0x100b2(r0)
+SB r29, 0x100ba(r0)
+SW r5, 0x100ce(r0)
+LDI r10, 0x100ce
+LDUI r10, r10, 0x0
+LDI r11, 0x1009a
+LDUI r11, r11, 0x0
+LW r12, 0(r10)
+LW r13, 0(r11)
+LW r14, 0(r13)
+LW r15, 0(r12)
+CMP r14, r15
+NOP
+FBR LE, r15
+BNE r15, r0, ARRAY_ALLOC_3_END
+ADDI r12, r2, 0
+SW r2, 0(r10)
+ADD r2, r2, r14
+ADDI r2, r2, 4
+ARRAY_ALLOC_3_END:
+SW r14, 0(r12)
+ADDI r16, r13, 4
+ADDI r17, r12, 4
+ADDI r18, r0, 0
+ARRAY_3:
+CMP r18, r14
+NOP
+FBR LT, r19
+BNE r19, r1, ARRAY_3_end
+LB r20, 0(r16)
+SB r20, 0(r17)
+ADDI r16, r16, 1
+ADDI r17, r17, 1
+ADDI r18, r18, 1
+BEQ r0, r0, ARRAY_3
+ARRAY_3_end:
+ADDI r11, r11, 4
+ADDI r10, r10, 4
+LW r6, 0x1001c(r0)
+ADDI r21, r0, 1
+ADD r22, r6, r21
+ADD r6, r22, r0
+SW r6, 0x1001c(r0)
+BEQ r0, r0, labelwhile_2
+continue_2:
+SW r10, 0x100d2(r0)
+SW r11, 0x100d6(r0)
+SW r14, 0x100da(r0)
+SB r16, 0x100e2(r0)
+SW r15, 0x100de(r0)
+SW r18, 0x100e4(r0)
+SB r17, 0x100e3(r0)
+SW r21, 0x100ec(r0)
+SW r22, 0x100e8(r0)
+LDI r23, 0x10008
+LDUI r23, r23, 0x0
+LDI r24, 0x10014
+LDUI r24, r24, 0x0
+LW r25, 0(r23)
+LW r26, 0(r24)
+LW r27, 0(r26)
+LW r28, 0(r25)
+CMP r27, r28
+NOP
+FBR LE, r28
+BNE r28, r0, ARRAY_ALLOC_4_END
+ADDI r25, r2, 0
+SW r2, 0(r23)
+ADDI r29, r0, 4
+MUL r29, r29, r27
+ADD r2, r2, r29
+ADDI r2, r2, 4
+ARRAY_ALLOC_4_END:
+SW r27, 0(r25)
+ADDI r30, r26, 4
+ADDI r31, r25, 4
+ADDI r3, r0, 0
+ARRAY_4:
+CMP r3, r27
+NOP
+FBR LT, r4
+BNE r4, r1, ARRAY_4_end
+LW r5, 0(r31)
+LW r6, 0(r30)
+LW r7, 0(r6)
+LW r8, 0(r5)
+CMP r7, r8
+NOP
+FBR LE, r8
+BNE r8, r0, ARRAY_ALLOC_5_END
+ADDI r5, r2, 0
+SW r2, 0(r31)
+ADD r2, r2, r7
+ADDI r2, r2, 4
+ARRAY_ALLOC_5_END:
+SW r7, 0(r5)
+ADDI r9, r6, 4
+ADDI r10, r5, 4
+ADDI r11, r0, 0
+ARRAY_5:
+CMP r11, r7
+NOP
+FBR LT, r12
+BNE r12, r1, ARRAY_5_end
+LB r13, 0(r9)
+SB r13, 0(r10)
+ADDI r9, r9, 1
+ADDI r10, r10, 1
+ADDI r11, r11, 1
+BEQ r0, r0, ARRAY_5
+ARRAY_5_end:
+ADDI r30, r30, 4
+ADDI r31, r31, 4
+ADDI r3, r3, 1
+BEQ r0, r0, ARRAY_4
+ARRAY_4_end:
+ADDI r24, r24, 4
+ADDI r23, r23, 4
+BEQ r0, r0, function_0_end
+function_0_end:
+
+ADDI r14, r0, 0
+ADDI r15, r0, 0
+SW r3, 0x10108(r0)
+SW r7, 0x1010c(r0)
+SW r8, 0x10110(r0)
+SB r9, 0x10114(r0)
+SW r30, 0x10100(r0)
+SB r10, 0x10115(r0)
+SW r31, 0x10104(r0)
+SW r11, 0x10116(r0)
+SW r14, 0x1011a(r0)
+SW r15, 0x1011e(r0)
+SW r23, 0x100f0(r0)
+SW r24, 0x100f4(r0)
+SW r27, 0x100f8(r0)
+SW r28, 0x100fc(r0)
+LW r14, 0x1011a(r0)
+ADDI r14, r14, 0
+LW r15, 0x1011e(r0)
+ADDI r15, r15, 4
+LDI r16, 0x10008
+LDUI r16, r16, 0x0
+ADDI r17, r14, 4
+CMP r15, r17
+NOP
+FBR LT, r18
+BEQ r18, r0, UPDATE_FADDR_6
+ADDI r15, r17, 0
+UPDATE_FADDR_6:
+SUB r17, r15, r14
+SW r17, 0(r14)
+LW r19, 0(r16)
+LW r20, 0(r19)
+SW r20, 0(r15)
+ADDI r21, r15, 4
+ADDI r19, r19, 4
+ADDI r17, r0, 4
+MUL r17, r17, r20
+ADD r15, r15, r17
+ADDI r15, r15, 4
+ADDI r17, r0, 0
+ARRAY_6:
+CMP r17, r20
+NOP
+FBR LT, r18
+BNE r18, r1, ARRAY_6_end
+ADDI r22, r21, 4
+CMP r15, r22
+NOP
+FBR LT, r23
+BEQ r23, r0, UPDATE_FADDR_7
+ADDI r15, r22, 0
+UPDATE_FADDR_7:
+SUB r22, r15, r21
+SW r22, 0(r21)
+LW r24, 0(r19)
+LW r25, 0(r24)
+SW r25, 0(r15)
+ADDI r26, r15, 4
+ADDI r24, r24, 4
+ADDI r22, r0, 1
+MUL r22, r22, r25
+ADD r15, r15, r22
+ADDI r15, r15, 4
+ADDI r22, r0, 0
+ARRAY_7:
+CMP r22, r25
+NOP
+FBR LT, r23
+BNE r23, r1, ARRAY_7_end
+ADDI r27, r26, 1
+CMP r15, r27
+NOP
+FBR LT, r28
+BEQ r28, r0, UPDATE_FADDR_8
+ADDI r15, r27, 0
+UPDATE_FADDR_8:
+LB r27, 0(r24)
+SB r27, 0(r26)
+ADDI r26, r26, 1
+ADDI r24, r24, 1
+ADDI r22, r22, 1
+BEQ r0, r0, ARRAY_7
+ARRAY_7_end:
+ADDI r21, r21, 4
+ADDI r19, r19, 4
+ADDI r17, r17, 1
+BEQ r0, r0, ARRAY_6
+ARRAY_6_end:
+ADDI r14, r14, 0
+ADDI r15, r15, -4
+BEQ r0, r0, function_null_end
+function_null_end:
+STOP
