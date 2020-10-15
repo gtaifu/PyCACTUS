@@ -4,7 +4,6 @@ from pycactus.utils import get_logger
 import logging
 
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.WARNING)
 
 
 class Quantumsim(If_qubit_sim):

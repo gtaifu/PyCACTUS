@@ -1,18 +1,26 @@
 
+import logging
 from .eqasm_parser import Eqasm_parser
 from .qcp import Quantum_control_processor
 from .qubit_state_sim.quantumsim import Quantumsim
 from .global_config import NUM_QUBIT
+from .utils import get_logger
+logger = get_logger((__name__).split('.')[-1])
 
 
 class Quantum_coprocessor():
-    def __init__(self):
+    def __init__(self, log_level=logging.WARNING):
         """
         Top module of the python-version cactus.
         """
         self.qubit_sim = Quantumsim(NUM_QUBIT)
         self.qcp = Quantum_control_processor(self.qubit_sim)
         self.eqasm_parser = Eqasm_parser()
+        self.set_log_level(log_level)
+
+    def set_log_level(self, log_level):
+        logger.setLevel(log_level)
+        self.qcp.set_log_level(log_level)
 
     def upload_program(self, prog_fn):
         '''Parse the eQASM assembly file and upload it to the instruction memory of the QCP.

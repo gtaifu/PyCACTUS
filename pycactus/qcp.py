@@ -9,14 +9,14 @@ import pycactus.global_config as gc
 from .qubit_state_sim.if_qubit_sim import If_qubit_sim
 
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.WARNING)
 
 
 class Quantum_control_processor():
-    def __init__(self, qubit_state_sim=None, start_addr=0):
+    def __init__(self, qubit_state_sim=None, start_addr=0, log_level=logging.WARNING):
         # assert(isinstance(qubit_state_sim, If_qubit_sim))
 
         self.qubit_state_sim = qubit_state_sim
+        self.set_log_level(log_level)
 
         # general purpose register file
         self.gprf = GPRF(num_gpr=gc.NUM_GPR, gpr_width=gc.GPR_WIDTH)
@@ -33,8 +33,11 @@ class Quantum_control_processor():
         self.start_addr = start_addr
 
         # data memory
-        self.data_mem = Memory(size=gc.SIZE_DATA_MEM)
+        self.data_mem = Memory(size=gc.SIZE_DATA_MEM, parent_qcp=self)
         self.reset()
+
+    def set_log_level(self, log_level):
+        logger.setLevel(log_level)
 
     def get_data_mem(self):
         return self.data_mem.get_entire_mem()

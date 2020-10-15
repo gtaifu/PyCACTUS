@@ -31,7 +31,7 @@ def pycactus_err(arg, **kwargs):
 # FORMATTER = logging.Formatter(
 #     "%(asctime)s — %(name)s — %(levelname)s — %(message)s")
 FORMATTER = logging.Formatter(
-    "%(name)s %(lineno)d: - %(levelname)s - %(message)s")
+    "%(name)s %(lineno)d(%(levelname)s):  - %(message)s")
 
 
 def get_console_handler():

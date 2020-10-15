@@ -220,7 +220,7 @@ class Eqasm_parser:
         '''insn_ldui : LDUI r_reg COMMA r_reg COMMA imm
                      | LDUI r_reg COMMA imm
         '''
-        if len(p) == 6:
+        if len(p) == 7:
             rd = p[2]
             rs = p[4]
             imm = p[6]

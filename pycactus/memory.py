@@ -1,10 +1,16 @@
+import logging
+from types import prepare_class
 from bitstring import BitArray
+from .utils import get_logger
+logger = get_logger((__name__).split('.')[-1])
+logger.setLevel(logging.DEBUG)
 
 
 class Memory():
-    def __init__(self, size: int = 1000000):
+    def __init__(self, size: int = 1000000, parent_qcp=None):
         self.size = size
         self._mem = bytearray(size)
+        self.parent_qcp = parent_qcp
 
     def get_entire_mem(self):
         return self._mem
@@ -35,6 +41,7 @@ class Memory():
           - addr (int): the address to write;
           - val (BitArray): an 8-bit bitstring.
         '''
+        logger.debug("Memory write byte, addr: {}, data: 0x{}.".format(addr, val.hex))
         self._check_addr(addr)
         self._mem[addr] = val.uint
 
@@ -64,6 +71,11 @@ class Memory():
           - val (BitArray): a 32-bit, little-endian bitstring.
         '''
         self._check_word_addr(addr)
+        if self.parent_qcp:
+            logger.debug("Memory write word, cycle: {}, addr: {:x}, data: 0x{}.".format(
+                self.parent_qcp.cycle, addr, val.hex))
+        else:
+            logger.debug("Memory write word, addr: {}, data: 0x{}.".format(addr, val.hex))
         self._mem[addr+3] = (val[0:8]).uint
         self._mem[addr+2] = (val[8:16]).uint
         self._mem[addr+1] = (val[16:24]).uint
