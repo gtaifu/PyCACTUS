@@ -11,6 +11,7 @@ fn = eqasm_dir / 'bellstate_loop.eqasm'
 fn = eqasm_dir / 'fp.eqasm'
 fn = eqasm_dir / 'test_assembly.qisa'
 fn = eqasm_dir / 'custom.eqasm'
+fn = Path(r'D:\GitHub\git_pcl\test_examples\algorithm\bell\build\bellStateLoop.eqasm')
 
 success, insns = eqasm_parser.parse(filename=fn, debug=True)
 if not success:

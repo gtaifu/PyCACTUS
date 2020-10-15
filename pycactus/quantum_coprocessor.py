@@ -21,6 +21,10 @@ class Quantum_coprocessor():
     def set_log_level(self, log_level):
         logger.setLevel(log_level)
         self.qcp.set_log_level(log_level)
+        self.qubit_sim.set_log_level(log_level)
+
+    def set_max_exec_cycle(self, num_cycle: int):
+        self.qcp.set_max_exec_cycle(num_cycle)
 
     def upload_program(self, prog_fn):
         '''Parse the eQASM assembly file and upload it to the instruction memory of the QCP.

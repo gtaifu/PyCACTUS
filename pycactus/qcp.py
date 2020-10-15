@@ -12,8 +12,9 @@ logger = get_logger((__name__).split('.')[-1])
 
 
 class Quantum_control_processor():
-    def __init__(self, qubit_state_sim=None, start_addr=0, log_level=logging.WARNING):
-        # assert(isinstance(qubit_state_sim, If_qubit_sim))
+    def __init__(self, qubit_state_sim=None, start_addr=0, log_level=logging.WARNING,
+                 max_exec_cycle=5000000):
+        assert(isinstance(qubit_state_sim, If_qubit_sim))
 
         self.qubit_state_sim = qubit_state_sim
         self.set_log_level(log_level)
@@ -35,9 +36,19 @@ class Quantum_control_processor():
         # data memory
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM, parent_qcp=self)
         self.reset()
+        self.max_exec_cycle = max_exec_cycle
+
+        # self.exec_trace_fn = 'exec_trace.csv'
+        # try:
+        #     self.trace_f = open(self.exec_trace_fn, 'w')
+        # except:
+        #     raise OSError("QCP: Cannot open the trace file: {}".format(self.exec_trace_fn))
 
     def set_log_level(self, log_level):
         logger.setLevel(log_level)
+
+    def set_max_exec_cycle(self, num_cycle: int):
+        self.max_exec_cycle = num_cycle
 
     def get_data_mem(self):
         return self.data_mem.get_entire_mem()
@@ -81,6 +92,7 @@ class Quantum_control_processor():
         self.reset()
         self.insn_mem = insns
         self.parse_labels()
+
         return True
 
     def parse_labels(self):
@@ -107,15 +119,6 @@ class Quantum_control_processor():
             self.label_addr[label] = len(self.insn_mem) - 1
 
         logger.debug("insn mem size: {}.".format(len(self.insn_mem)))
-
-    def advance_one_cycle(self):
-        self.cycle += 1
-
-        # fetch the instruction
-        insn = self.insn_mem[self.pc]
-        logger.debug("PC: {}, insn: {}".format(self.pc, insn))
-
-        self.process_insn(insn)  # execute
 
     def write_gpr_value(self, rd: int, **kwargs):
         '''Write the target GPR `rd` with the value specified by a key-word argument.
@@ -176,10 +179,27 @@ class Quantum_control_processor():
     def print_gpr(self, rd):
         self.gprf.print_reg(rd)
 
+    def advance_one_cycle(self):
+        self.cycle += 1
+
+        # fetch the instruction
+        insn = self.insn_mem[self.pc]
+
+        if self.cycle > 0:
+            log_msg = "cycle: {}, PC: {}, insn: {}\n".format(self.cycle, self.pc, insn)
+            logger.debug(log_msg)
+            # self.trace_f.write(log_msg)
+
+        self.process_insn(insn)  # execute
+
     def run(self):
+
         while (self.stop_bit == 0):
             self.advance_one_cycle()
+            if self.cycle > self.max_exec_cycle:
+                break
 
+        logger.info("pycactus exits after executing {} cycles.".format(self.cycle))
         return True
 
     def process_insn(self, insn):
@@ -255,6 +275,11 @@ class Quantum_control_processor():
             composed_bitstring = imm15 + self.gprf[insn.rs][15:32]
 
             self.write_gpr_bits(insn.rd, composed_bitstring)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == eqasm_insn.ADDI:
+            self.write_gpr_value(insn.rd, int=self.read_gpr_int(insn.rs) + insn.imm)
 
             self.pc += 1             # update the PC
 

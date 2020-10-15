@@ -18,8 +18,8 @@ class Quantumsim(If_qubit_sim):
         self.quantumsim.print_classical_state()
         logger.info("initialize quantumsim")
 
-    def apply_quantum_operation(self):
-        pass
+    def set_log_level(self, log_level):
+        logger.setLevel(log_level)
 
     def apply_idle_gate(self, idle_duration, qubit):
         self.quantumsim.calculate_gamma_lamda(idle_duration)
@@ -44,5 +44,4 @@ class Quantumsim(If_qubit_sim):
         self.quantumsim.apply_ptm(qubit)
         self.quantumsim.apply_measurement(qubit)
         msmt_result = self.quantumsim.return_measurement_result()
-        print("measurement qubit {}, get result: {}.".format(qubit, msmt_result))
         return msmt_result

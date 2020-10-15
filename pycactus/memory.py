@@ -3,7 +3,7 @@ from types import prepare_class
 from bitstring import BitArray
 from .utils import get_logger
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class Memory():

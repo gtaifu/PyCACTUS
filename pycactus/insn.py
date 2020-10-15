@@ -50,6 +50,7 @@ class eqasm_insn(Enum):
     REM = auto()
 
     LDUI = auto()  # LDUI Rd, Rs, imm15
+    ADDI = auto()  # ADDI Rd, Rs, imm
 
     LW = auto()    # LD Rd, Rt(imm10) one imm, one src GPR, one dst GPR
     LB = auto()
@@ -108,6 +109,7 @@ eqasm_insn_fields = {
     eqasm_insn.REM: ['rd', 'rs', 'rt'],  # REM rd, rs, rt
 
     eqasm_insn.LDUI: ['rd', 'rs', 'imm'],  # LDUI rd, rs, imm15
+    eqasm_insn.ADDI: ['rd', 'rs', 'imm'],  # ADDI Rd, Rs, imm
 
     eqasm_insn.LW: ['rd', 'imm', 'rt'],    # LD  rd, imm10(rt)
     eqasm_insn.LB: ['rd', 'imm', 'rt'],    # LB  rd, imm10(rt)
@@ -328,6 +330,9 @@ class Instruction():
 
         elif self.name == eqasm_insn.LDUI:
             return "LDUI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
+
+        elif self.name == eqasm_insn.ADDI:
+            return "ADDI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
 
         elif self.name == eqasm_insn.SW or self.name == eqasm_insn.SB:
             return "{} r{}, {}(r{})".format(str(self.name)[-2:], self.rs,

@@ -345,15 +345,11 @@ class Eqasm_parser:
 
     def p_insn_addi(self, p):
         'insn_addi : ADDI r_reg COMMA r_reg COMMA imm'
-        insn0 = Instruction(eqasm_insn.LDI, rd=p[2], imm=p[6])
-        # logger_yacc.debug('Insn 0: {}'.format(insn0))
-        insn1 = Instruction(eqasm_insn.ADD, rd=p[2], rs=p[4], rt=p[2])
-        # logger_yacc.debug('Insn 1: {}'.format(insn1))
-        self._instructions.append(insn0)
-        self._instructions.append(insn1)
-        p[0] = [insn0, insn1]
+        insn = Instruction(eqasm_insn.ADDI, rd=p[2], rs=p[4], imm=p[6])
+        p[0] = insn
+        self._instructions.append(insn)
 
-        logger_yacc.info("Insn added: {}, {}".format(insn0, insn1))
+        logger_yacc.info("Insn added: {}".format(insn))
 
     def p_insn_smis(self, p):
         'insn_smis : SMIS s_reg COMMA s_mask'
