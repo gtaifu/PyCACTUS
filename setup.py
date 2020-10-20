@@ -8,7 +8,7 @@ def get_version(verbose=1):
     """ Extract version information from source code """
 
     try:
-        with open('qgrtsys/version.py', 'r') as f:
+        with open('pycactus/version.py', 'r') as f:
             for ln in f:
                 print("line read: ", ln)
                 trim_ln = ln.strip()
@@ -31,5 +31,5 @@ setup(name='pycactus',
       author='Xiang Fu',
       author_email='gtaifu@gmail.com',
       packages=['pycactus'],
-      install_requires=['quantumsim==0.2.0']
+      install_requires=['quantumsim==0.2.0', 'bitstring']
       )

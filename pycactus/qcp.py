@@ -1,4 +1,3 @@
-from viztracer import VizTracer
 from pycactus.fpr import FPRF
 from bitstring import BitArray
 from .utils import *
@@ -9,8 +8,6 @@ from .memory import Memory
 import pycactus.global_config as gc
 
 logger = get_logger((__name__).split('.')[-1])
-
-tracer = VizTracer()
 
 
 class Quantum_control_processor():
@@ -184,22 +181,21 @@ class Quantum_control_processor():
         insn = self.insn_mem[self.pc]
 
         if self.cycle > 0:
-            log_msg = "cycle: {}, PC: {}, insn: {}\n".format(self.cycle, self.pc, insn)
+            log_msg = "cycle: {}, PC: {}, insn: {}\n".format(
+                self.cycle, self.pc, insn)
             logger.debug(log_msg)
             # self.trace_f.write(log_msg)
 
         self.process_insn(insn)  # execute
 
     def run(self):
-        tracer.start()
         while (self.stop_bit == 0):
             self.advance_one_cycle()
             if self.cycle > self.max_exec_cycle:
                 break
 
-        logger.info("pycactus exits after executing {} cycles.".format(self.cycle))
-        tracer.stop()
-        tracer.save('inline_tracer.json')
+        logger.info(
+            "pycactus exits after executing {} cycles.".format(self.cycle))
         return True
 
     def process_insn(self, insn):
@@ -279,7 +275,8 @@ class Quantum_control_processor():
             self.pc += 1             # update the PC
 
         elif insn.name == eqasm_insn.ADDI:
-            self.write_gpr_value(insn.rd, int=self.read_gpr_int(insn.rs) + insn.imm)
+            self.write_gpr_value(insn.rd,
+                                 int=self.read_gpr_int(insn.rs) + insn.imm)
 
             self.pc += 1             # update the PC
 
