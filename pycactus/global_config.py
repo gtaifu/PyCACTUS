@@ -16,5 +16,3 @@ FPR_WIDTH = 32
 NUM_SQ_QOTR = 32
 # number of two-qubit operation target registers
 NUM_TQ_QOTR = 64
-
-NUM_QUBIT = 7

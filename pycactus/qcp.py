@@ -11,7 +11,8 @@ logger = get_logger((__name__).split('.')[-1])
 
 
 class Quantum_control_processor():
-    def __init__(self, qubit_state_sim=None, start_addr=0, log_level=logging.WARNING,
+    def __init__(self, qubit_state_sim=None, num_available_qubits=7,
+                 start_addr=0, log_level=logging.WARNING,
                  max_exec_cycle=5000000):
         self.qubit_state_sim = qubit_state_sim
 
@@ -23,23 +24,27 @@ class Quantum_control_processor():
         # operation target register files
         self.qotrf = QOTRF()
 
-        # measurement result register
-        self.msmt_result = [0] * gc.NUM_QUBIT
-
         self.max_insn_num = gc.SIZE_INSN_MEM
         self.start_addr = start_addr
 
         # data memory
         self.data_mem = Memory(size=gc.SIZE_DATA_MEM, parent_qcp=self)
-        self.reset()
+        self.set_num_available_qubits(num_available_qubits)
         self.max_exec_cycle = max_exec_cycle
 
+        self.reset()
         self.set_log_level(log_level)
         # self.exec_trace_fn = 'exec_trace.csv'
         # try:
         #     self.trace_f = open(self.exec_trace_fn, 'w')
         # except:
         #     raise OSError("QCP: Cannot open the trace file: {}".format(self.exec_trace_fn))
+
+    def set_num_available_qubits(self, num_available_qubits):
+        self._num_available_qubits = num_available_qubits
+        self.qotrf.set_num_available_qubits(num_available_qubits)
+        # measurement result register
+        self.msmt_result = [0] * num_available_qubits
 
     def set_log_level(self, log_level):
         logger.setLevel(log_level)
@@ -72,7 +77,7 @@ class Quantum_control_processor():
         self.cycle = 0
         self.pc = self.start_addr
         # qubit measurement result
-        self.msmt_result = [0] * gc.NUM_QUBIT
+        self.msmt_result = [0] * self._num_available_qubits
         # comparison flags
         self.cmp_flags = [True] + [False] * (len(CMP_FLAG) - 1)
 

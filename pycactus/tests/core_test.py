@@ -89,7 +89,7 @@ def test_FMR():
     for i in range(len(qcp.msmt_result)):
         qcp.msmt_result[i] = i % 2
 
-    for i in range(gc.NUM_QUBIT):
+    for i in range(31):
         add_insn(eqasm_insn.FMR, rd=0, qs=i)
         qcp.advance_one_cycle()
         assert(qcp.read_gpr_int(0) == (i % 2))
