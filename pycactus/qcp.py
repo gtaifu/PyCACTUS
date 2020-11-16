@@ -196,6 +196,7 @@ class Quantum_control_processor():
     def run(self):
         while (self.stop_bit == 0):
             self.advance_one_cycle()
+            # print('\rcycle: {}, PC: {}'.format(self.cycle, self.pc), end='')
             if self.cycle > self.max_exec_cycle:
                 break
 

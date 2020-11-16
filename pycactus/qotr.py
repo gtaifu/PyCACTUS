@@ -8,7 +8,6 @@ class QOTRF():
         self.tq_regs = [None] * gc.NUM_TQ_QOTR
 
     def set_num_available_qubits(self, max_qubit_num):
-        print('QOTRF max_qubit_num: {}'.format(max_qubit_num))
         self.max_qubit_num = max_qubit_num
 
     def set_sq_reg(self, si, qubit_list):
