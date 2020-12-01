@@ -44,7 +44,7 @@ class interface_quantumsim:
         self.lamda = None
 
         # default sampler
-        self.sampler = uniform_noisy_sampler(readout_error=0.03, seed=42)
+        self.sampler = uniform_noisy_sampler(readout_error=0.03, rng=42)
         self.sampler.send(None)
         self.readout_error = 0  # 0.03
         self.seed = 42
