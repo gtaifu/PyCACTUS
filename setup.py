@@ -31,5 +31,5 @@ setup(name='pycactus',
       author='Xiang Fu',
       author_email='gtaifu@gmail.com',
       packages=['pycactus'],
-      install_requires=['quantumsim==0.2.0', 'bitstring']
+      install_requires=['quantumsim==0.2.0', 'bitstring', 'ply']
       )
