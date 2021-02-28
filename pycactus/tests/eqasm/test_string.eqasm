@@ -1,0 +1,5 @@
+DUMPMEM 0x10042 'int[][]'
+DUMPMEM 0x10042 'bool'
+DUMPMEM 0x10042 'double'
+DUMPMEM 0x10042 '(int, bool)'
+stop

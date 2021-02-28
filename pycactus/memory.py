@@ -1,9 +1,9 @@
 import logging
 from types import prepare_class
 from bitstring import BitArray
+from .data_transfer import Data_transfer
 from .utils import get_logger
 logger = get_logger((__name__).split('.')[-1])
-logger.setLevel(logging.WARNING)
 
 
 class Memory():
@@ -11,9 +11,40 @@ class Memory():
         self.size = size
         self._mem = bytearray(size)
         self.parent_qcp = parent_qcp
+        self.export_history = []
+        self.max_export_show_addr = 100
+
+    def final_dump(self):
+        for msg in self.export_history:
+            print(msg)
+            logger.debug(msg)
+
+    def decode_data(self, addr, data_type):
+        logger.debug('decoding data at 0x{:x}'.format(addr))
+        data_trans = Data_transfer()
+        data_trans.set_data_block(self._mem)
+        pydata = data_trans.bin_to_pydata(data_type, addr)
+        logger.debug('value: {}'.format(pydata))
+
+    def dump_content(self, data_addr, data_type):
+        start_addr = (data_addr // 16) * 16
+        no_line_to_print = 4
+        head = ''.join(['{:5x}'.format(i) for i in range(16)])
+        logger.debug(" addr:" + head)
+        logger.debug(
+            '--------------------------------------------------------------------------------------')
+        for line_no in range(no_line_to_print):
+            start = '{:5x}:'.format(start_addr+line_no)
+            cells = ''.join(['{:>5s}'.format('{:d}'.format(
+                self._mem[start_addr + offset + line_no*16]))
+                for offset in range(16)])
+            logger.debug(start + cells)
 
     def get_entire_mem(self):
         return self._mem
+
+    def set_log_level(self, level):
+        logger.setLevel(level)
 
     def _check_addr(self, addr):
         if addr < 0:
@@ -41,7 +72,11 @@ class Memory():
           - addr (int): the address to write;
           - val (BitArray): an 8-bit bitstring.
         '''
-        logger.debug("Memory write byte, addr: {}, data: 0x{}.".format(addr, val.hex))
+        msg = "Memory write (addr: 0x{:x})  <--  (byte: 0x{:x}).\n".format(addr, val.int)
+        logger.debug(msg)
+        if (addr < self.max_export_show_addr):
+            self.export_history.append(msg[:-1])
+
         self._check_addr(addr)
         self._mem[addr] = val.uint
 
@@ -71,11 +106,10 @@ class Memory():
           - val (BitArray): a 32-bit, little-endian bitstring.
         '''
         self._check_word_addr(addr)
-        if self.parent_qcp:
-            logger.debug("Memory write word, cycle: {}, addr: {:x}, data: 0x{}.".format(
-                self.parent_qcp.cycle, addr, val.hex))
-        else:
-            logger.debug("Memory write word, addr: {}, data: 0x{}.".format(addr, val.hex))
+        msg = "Memory write (addr: 0x{:x})  <--  (word: 0x{:x}).\n".format(addr, val.int)
+        logger.debug(msg)
+        if (addr < self.max_export_show_addr):
+            self.export_history.append(msg[:-1])
         self._mem[addr+3] = (val[0:8]).uint
         self._mem[addr+2] = (val[8:16]).uint
         self._mem[addr+1] = (val[16:24]).uint

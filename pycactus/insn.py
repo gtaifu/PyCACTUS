@@ -58,8 +58,10 @@ class eqasm_insn(Enum):
     SB = auto()
     SW = auto()
 
-    FCVT_W_S = auto()  # FCVT.W.S rd, fs
-    FCVT_S_W = auto()  # FCVT.S.W fd, rs
+    FCVT_W_S = auto()  # FCVT.W.S rd, fs    R[rd](31:0) = integer(F[fs])
+    FCVT_S_W = auto()  # FCVT.S.W fd, rs    F[fd] = float(R[rs](31:0))
+    FMV_W_X = auto()   # FMV.W.X fd, rs      F[fd] = R[rs]
+    FMV_X_W = auto()   # FMV.X.W rd, fs      R[rd] = F[fs]
     FLW = auto()       # FLW fd, imm(rs)
     FSW = auto()       # FSW fs, imm(rs)
     FADD_S = auto()    # FADD.S fd, fs1, fs2
@@ -70,8 +72,13 @@ class eqasm_insn(Enum):
     FLT_S = auto()     # FLT.S rd, fs1, fs2
     FLE_S = auto()     # FLE.S rd, fs1, fs2
 
+    # debug instruction
+    DUMPMEM = auto()
+
 
 eqasm_insn_fields = {
+    # debug instruction
+    eqasm_insn.DUMPMEM: ['imm'],  # dumpmem imm
     # no operand
     eqasm_insn.NOP: [],
     eqasm_insn.STOP: [],
@@ -117,10 +124,12 @@ eqasm_insn_fields = {
     eqasm_insn.SB: ['rs', 'imm', 'rt'],    # SB  rs, imm10(rt)
     eqasm_insn.SW: ['rs', 'imm', 'rt'],    # SW  rs, imm10(rt)
 
-    eqasm_insn.FCVT_W_S: ['rd', 'fs'],        # FCVT.W.S rd, fs
-    eqasm_insn.FCVT_S_W: ['fd', 'rs'],        # FCVT.S.W fd, rs
-    eqasm_insn.FLW: ['fd', 'imm', 'rs'],      # FLW fd, imm(rs)
-    eqasm_insn.FSW: ['fs', 'imm', 'rs'],      # FSW fs, imm(rs)
+    eqasm_insn.FCVT_W_S: ['rd', 'fs'],      # FCVT.W.S rd, fs
+    eqasm_insn.FCVT_S_W: ['fd', 'rs'],      # FCVT.S.W fd, rs
+    eqasm_insn.FMV_W_X: ['fd', 'rs'],       # FMV.W.X fd, rs      F[fd] = R[rs]
+    eqasm_insn.FMV_X_W: ['rd', 'fs'],       # FMV.X.W rd, fs      R[rd] = F[fs]
+    eqasm_insn.FLW: ['fd', 'imm', 'rs'],    # FLW fd, imm(rs)
+    eqasm_insn.FSW: ['fs', 'imm', 'rs'],    # FSW fs, imm(rs)
     eqasm_insn.FADD_S: ['fd', 'fs', 'ft'],  # FADD.S fd, fs, ft
     eqasm_insn.FSUB_S: ['fd', 'fs', 'ft'],  # FSUB.S fd, fs, ft
     eqasm_insn.FMUL_S: ['fd', 'fs', 'ft'],  # FMUL.S fd, fs, ft
@@ -233,6 +242,7 @@ class Instruction():
         logger.debug(
             "constructing instruction: {} {}".format(name, str(kwargs)))
         self.name = name
+        self.lineno = kwargs.pop('lineno', None)
         self.rd = kwargs.pop('rd', None)
         self.rs = kwargs.pop('rs', None)
         self.rt = kwargs.pop('rt', None)
@@ -290,6 +300,9 @@ class Instruction():
         elif self.name == eqasm_insn.STOP:
             return 'STOP'
 
+        elif self.name == eqasm_insn.DUMPMEM:
+            return "DUMPMEM 0x{:x} '{}'".format(self.imm, self.cmp_flag)
+
         elif self.name == eqasm_insn.QWAIT:
             return "QWAIT {}".format(self.imm)
         elif self.name == eqasm_insn.QWAITR:
@@ -335,19 +348,25 @@ class Instruction():
             return "ADDI r{}, r{}, {}".format(self.rd, self.rs, self.imm)
 
         elif self.name == eqasm_insn.SW or self.name == eqasm_insn.SB:
-            return "{} r{}, {}(r{})".format(str(self.name)[-2:], self.rs,
-                                            self.imm, self.rt)
+            return "{} r{}, 0x{:x}(r{})".format(str(self.name)[-2:], self.rs,
+                                                self.imm, self.rt)
 
         elif (self.name == eqasm_insn.LB or self.name == eqasm_insn.LW
                 or self.name == eqasm_insn.LBU):
-            return "{} r{}, {}(r{})".format(self.name, self.rd,
-                                            self.imm, self.rt)
+            return "{} r{}, 0x{:x}(r{})".format(str(self.name)[-2:], self.rd,
+                                                self.imm, self.rt)
 
         elif self.name == eqasm_insn.FCVT_W_S:  # FCVT.W.S rd, fs
             return "FCVT.W.S r{}, f{}".format(self.rd, self.fs)
 
         elif self.name == eqasm_insn.FCVT_S_W:  # FCVT.S.W fd, rs
             return "FCVT.S.W f{}, r{}".format(self.fd, self.rs)
+
+        elif self.name == eqasm_insn.FMV_W_X:  # FMV.W.X fd, rs
+            return "FMV.W.X f{}, r{}".format(self.fd, self.rs)
+
+        elif self.name == eqasm_insn.FMV_X_W:  # FMV.X.W rd, fs
+            return "FMV.X.W r{}, f{}".format(self.rd, self.fs)
 
         elif self.name == eqasm_insn.FLW:
             return "FLW f{}, {}(r{})".format(self.fd, self.imm, self.rs)

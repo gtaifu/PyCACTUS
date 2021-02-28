@@ -78,6 +78,7 @@ class Eqasm_parser:
     def p_classic_statement(self, p):
         '''classic_statement : insn_nop
                              | insn_stop
+                             | insn_dumpmem
                              | insn_qwait
                              | insn_qwaitr
                              | insn_not
@@ -95,6 +96,8 @@ class Eqasm_parser:
                              | insn_smit
                              | insn_fcvtws
                              | insn_fcvtsw
+                             | insn_fmvxw
+                             | insn_fmvwx
                              | insn_flw
                              | insn_fsw
                              | insn_fp_arith
@@ -108,25 +111,37 @@ class Eqasm_parser:
 
     def p_insn_fcvtws(self, p):  # FCVT.W.S rd, fs
         'insn_fcvtws : FCVT_W_S r_reg COMMA f_reg'
-        insn = Instruction(eqasm_insn.FCVT_W_S, rd=p[2], fs=p[4])
+        insn = Instruction(eqasm_insn.FCVT_W_S, rd=p[2], fs=p[4], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_fcvtsw(self, p):  # FCVT.S.W fd, rs
         'insn_fcvtsw : FCVT_S_W f_reg COMMA r_reg'
-        insn = Instruction(eqasm_insn.FCVT_S_W, fd=p[2], rs=p[4])
+        insn = Instruction(eqasm_insn.FCVT_S_W, fd=p[2], rs=p[4], lineno=p.lineno(1))
+        p[0] = insn
+        self._instructions.append(insn)
+
+    def p_insn_fmvwx(self, p):  # FMV.W.X fd, rs
+        'insn_fmvwx : FMV_W_X f_reg COMMA r_reg'
+        insn = Instruction(eqasm_insn.FMV_W_X, fd=p[2], rs=p[4], lineno=p.lineno(1))
+        p[0] = insn
+        self._instructions.append(insn)
+
+    def p_insn_fmvxw(self, p):  # FMV.X.W rd, fs
+        'insn_fmvxw : FMV_X_W r_reg COMMA f_reg'
+        insn = Instruction(eqasm_insn.FMV_X_W, rd=p[2], fs=p[4], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_flw(self, p):
         'insn_flw : FLW f_reg COMMA imm LPAREN r_reg RPAREN'
-        insn = Instruction(eqasm_insn.FLW, fd=p[2], imm=p[4], rs=p[6])
+        insn = Instruction(eqasm_insn.FLW, fd=p[2], imm=p[4], rs=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
     def p_insn_fsw(self, p):
         'insn_fsw : FSW f_reg COMMA imm LPAREN r_reg RPAREN'
-        insn = Instruction(eqasm_insn.FSW, fs=p[2], imm=p[4], rs=p[6])
+        insn = Instruction(eqasm_insn.FSW, fs=p[2], imm=p[4], rs=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
@@ -137,7 +152,7 @@ class Eqasm_parser:
                          | FDIV_S f_reg COMMA f_reg COMMA f_reg
         '''
         insn_name = inv_fp_arith_name[p[1]]
-        insn = Instruction(insn_name, fd=p[2], fs=p[4], ft=p[6])
+        insn = Instruction(insn_name, fd=p[2], fs=p[4], ft=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
@@ -147,7 +162,7 @@ class Eqasm_parser:
                      | FLE_S r_reg COMMA f_reg COMMA f_reg
         '''
         insn_name = inv_fp_cmp_insn[p[1]]
-        insn = Instruction(insn_name, rd=p[2], fs=p[4], ft=p[6])
+        insn = Instruction(insn_name, rd=p[2], fs=p[4], ft=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
@@ -161,58 +176,64 @@ class Eqasm_parser:
         else:
             bs = 1
             q_ops = p[1]
-        insn = Instruction(eqasm_insn.BUNDLE, pi=bs, q_ops=q_ops)
+        insn = Instruction(eqasm_insn.BUNDLE, pi=bs, q_ops=q_ops, lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
 
     def p_insn_nop(self, p):  # nop
         'insn_nop : NOP'
 
-        p[0] = insn = Instruction(eqasm_insn.NOP)
+        p[0] = insn = Instruction(eqasm_insn.NOP, lineno=p.lineno(1))
+        self._instructions.append(insn)
+        logger_yacc.info("Insn added: {}".format(p[0]))
+
+    def p_insn_dumpmem(self, p):  # dumpmem imm
+        'insn_dumpmem : DUMPMEM imm STRING'
+        p[0] = insn = Instruction(eqasm_insn.DUMPMEM, imm=p[2], cmp_flag=p[3], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_stop(self, p):  # stop
         'insn_stop : STOP'
 
-        p[0] = insn = Instruction(eqasm_insn.STOP)
+        p[0] = insn = Instruction(eqasm_insn.STOP, lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_qwait(self, p):  # qwait u_imm
         'insn_qwait : QWAIT imm'
-        p[0] = insn = Instruction(eqasm_insn.QWAIT, imm=p[2])
+        p[0] = insn = Instruction(eqasm_insn.QWAIT, imm=p[2], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_qwaitr(self, p):  # qwaitr rs
         'insn_qwaitr : QWAITR r_reg'
-        p[0] = insn = Instruction(eqasm_insn.QWAITR, rs=p[2])
+        p[0] = insn = Instruction(eqasm_insn.QWAITR, rs=p[2], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_not(self, p):  # not rd, rt
         'insn_not : NOT r_reg COMMA r_reg'
-        p[0] = insn = Instruction(eqasm_insn.NOT, rd=p[2], rt=p[4])
+        p[0] = insn = Instruction(eqasm_insn.NOT, rd=p[2], rt=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_cmp(self, p):
         'insn_cmp : CMP r_reg COMMA r_reg'
-        p[0] = insn = Instruction(eqasm_insn.CMP, rs=p[2], rt=p[4])
+        p[0] = insn = Instruction(eqasm_insn.CMP, rs=p[2], rt=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_fmr(self, p):  # fmr rd, qs
         'insn_fmr : FMR r_reg COMMA q_reg'
 
-        p[0] = insn = Instruction(eqasm_insn.FMR, rd=p[2], qs=p[4])
+        p[0] = insn = Instruction(eqasm_insn.FMR, rd=p[2], qs=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
     def p_insn_ldi(self, p):  # ldi rd, imm
         'insn_ldi : LDI r_reg COMMA imm'
-        p[0] = insn = Instruction(eqasm_insn.LDI, rd=p[2], imm=p[4])
+        p[0] = insn = Instruction(eqasm_insn.LDI, rd=p[2], imm=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
@@ -228,7 +249,7 @@ class Eqasm_parser:
             rd = rs = p[2]
             imm = p[4]
 
-        p[0] = insn = Instruction(eqasm_insn.LDUI, rd=rd, rs=rs, imm=imm)
+        p[0] = insn = Instruction(eqasm_insn.LDUI, rd=rd, rs=rs, imm=imm, lineno=p.lineno(1))
 
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
@@ -240,11 +261,11 @@ class Eqasm_parser:
         '''
 
         if (p[1]).lower() == 'lw':
-            insn = Instruction(eqasm_insn.LW, rd=p[2], imm=p[4], rt=p[6])
+            insn = Instruction(eqasm_insn.LW, rd=p[2], imm=p[4], rt=p[6], lineno=p.lineno(1))
         elif (p[1]).lower() == 'lb':
-            insn = Instruction(eqasm_insn.LB, rd=p[2], imm=p[4], rt=p[6])
+            insn = Instruction(eqasm_insn.LB, rd=p[2], imm=p[4], rt=p[6], lineno=p.lineno(1))
         elif (p[1]).lower() == 'lbu':
-            insn = Instruction(eqasm_insn.LBU, rd=p[2], imm=p[4], rt=p[6])
+            insn = Instruction(eqasm_insn.LBU, rd=p[2], imm=p[4], rt=p[6], lineno=p.lineno(1))
         else:
             assert(False)
 
@@ -258,9 +279,9 @@ class Eqasm_parser:
         '''
 
         if (p[1]).lower() == 'sw':
-            insn = Instruction(eqasm_insn.SW, rs=p[2], imm=p[4], rt=p[6])
+            insn = Instruction(eqasm_insn.SW, rs=p[2], imm=p[4], rt=p[6], lineno=p.lineno(1))
         elif (p[1]).lower() == 'sb':
-            insn = Instruction(eqasm_insn.SB, rs=p[2], imm=p[4], rt=p[6])
+            insn = Instruction(eqasm_insn.SB, rs=p[2], imm=p[4], rt=p[6], lineno=p.lineno(1))
         else:
             assert(False)
         p[0] = insn
@@ -269,16 +290,14 @@ class Eqasm_parser:
 
     def p_insn_br(self, p):
         'insn_br : BR cond COMMA offset_to_label'
-        insn = Instruction(eqasm_insn.BR, cmp_flag=p[2],
-                           target_label=p[4])
+        insn = Instruction(eqasm_insn.BR, cmp_flag=p[2], target_label=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
 
     def p_insn_bra(self, p):
         '''insn_bra : BRA offset_to_label
         '''
-        insn = Instruction(eqasm_insn.BR, cmp_flag='always',
-                           target_label=p[2])
+        insn = Instruction(eqasm_insn.BR, cmp_flag='always', target_label=p[2], lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
 
@@ -288,7 +307,7 @@ class Eqasm_parser:
         '''insn_goto : GOTO offset_to_label
         '''
         p[0] = insn = Instruction(eqasm_insn.BR, cmp_flag='always',
-                                  target_label=p[2])
+                                  target_label=p[2], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
@@ -296,7 +315,7 @@ class Eqasm_parser:
         '''insn_brn : BRN offset_to_label
         '''
         p[0] = insn = Instruction(eqasm_insn.BR, cmp_flag='never',
-                                  target_label=p[2])
+                                  target_label=p[2], lineno=p.lineno(1))
         self._instructions.append(insn)
         logger_yacc.info("Insn added: {}".format(p[0]))
 
@@ -312,9 +331,9 @@ class Eqasm_parser:
                     | BGTU r_reg COMMA r_reg COMMA offset_to_label
                     | BGEU r_reg COMMA r_reg COMMA offset_to_label
         '''
-        insn0 = Instruction(eqasm_insn.CMP, rs=p[2], rt=p[4])
+        insn0 = Instruction(eqasm_insn.CMP, rs=p[2], rt=p[4], lineno=p.lineno(1))
         insn1 = Instruction(eqasm_insn.BR, cmp_flag=p[1][1:],
-                            target_label=p[6])
+                            target_label=p[6], lineno=p.lineno(1))
         self._instructions.append(insn0)
         self._instructions.append(insn1)
         p[0] = [insn0, insn1]
@@ -322,7 +341,7 @@ class Eqasm_parser:
 
     def p_insn_fbr(self, p):
         'insn_fbr : FBR cond COMMA r_reg'
-        insn = Instruction(eqasm_insn.FBR, cmp_flag=p[2], rd=p[4])
+        insn = Instruction(eqasm_insn.FBR, cmp_flag=p[2], rd=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
 
@@ -337,7 +356,7 @@ class Eqasm_parser:
                     | REM r_reg COMMA r_reg COMMA r_reg
         '''
         insn_name = inv_int_arith_name[p[1]]
-        insn = Instruction(insn_name, rd=p[2], rs=p[4], rt=p[6])
+        insn = Instruction(insn_name, rd=p[2], rs=p[4], rt=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
@@ -345,7 +364,7 @@ class Eqasm_parser:
 
     def p_insn_addi(self, p):
         'insn_addi : ADDI r_reg COMMA r_reg COMMA imm'
-        insn = Instruction(eqasm_insn.ADDI, rd=p[2], rs=p[4], imm=p[6])
+        insn = Instruction(eqasm_insn.ADDI, rd=p[2], rs=p[4], imm=p[6], lineno=p.lineno(1))
         p[0] = insn
         self._instructions.append(insn)
 
@@ -354,7 +373,7 @@ class Eqasm_parser:
     def p_insn_smis(self, p):
         'insn_smis : SMIS s_reg COMMA s_mask'
 
-        insn = Instruction(eqasm_insn.SMIS, si=p[2], sq_list=p[4])
+        insn = Instruction(eqasm_insn.SMIS, si=p[2], sq_list=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
         logger_yacc.info("Insn added: {}".format(p[0]))
@@ -362,7 +381,7 @@ class Eqasm_parser:
     def p_insn_smit(self, p):
         'insn_smit : SMIT t_reg COMMA t_mask'
 
-        insn = Instruction(eqasm_insn.SMIT, ti=p[2], tq_list=p[4])
+        insn = Instruction(eqasm_insn.SMIT, ti=p[2], tq_list=p[4], lineno=p.lineno(1))
         self._instructions.append(insn)
         p[0] = insn
         logger_yacc.info("Insn added: {}".format(p[0]))
@@ -520,6 +539,11 @@ class Eqasm_parser:
         p[0] = label
         logger_yacc.info("target label: {}".format(label))
 
+    # def p_string(self, p):
+    #     'string : STRING'
+    #     p[0] = p[1]
+    #     logger_yacc.info("found string: {}".format(p[2]))
+
     def p_cond(self, p):
         '''cond : COND_ALWAYS
                 | COND_NEVER
@@ -595,7 +619,8 @@ class Eqasm_parser:
         self.error_list = []
         self._label_addr = {}
         self.parser.parse(data.lower(), lexer=self.lexer)
-
+        self.parser.restart()
+        self.lexer.lineno = 1
         for l in self._label_addr:
             self._instructions[self._label_addr[l]].labels.append(l)
 

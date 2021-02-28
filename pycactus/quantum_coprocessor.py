@@ -1,9 +1,9 @@
-
-import logging
-from .eqasm_parser import Eqasm_parser
-from .qcp import Quantum_control_processor
 from .qubit_state_sim.quantumsim import Quantumsim
-from .utils import get_logger
+from .qcp import Quantum_control_processor
+from .eqasm_parser import Eqasm_parser
+import logging
+from .utils import get_logger, update_log_file
+
 logger = get_logger((__name__).split('.')[-1])
 
 
@@ -51,6 +51,7 @@ class Quantum_coprocessor():
     def execute(self):
         '''Return True when executes successfully.
         '''
+        update_log_file()
         return self.qcp.run()
 
     def read_result(self):

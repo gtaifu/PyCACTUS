@@ -48,6 +48,7 @@ class Quantum_control_processor():
 
     def set_log_level(self, log_level):
         logger.setLevel(log_level)
+        self.data_mem.set_log_level(log_level)
         self.gprf.set_log_level(log_level)
 
     def set_max_exec_cycle(self, num_cycle: int):
@@ -66,7 +67,7 @@ class Quantum_control_processor():
         # instruction memory
         self.insn_mem = []
         self.label_addr = {}
-        # self.num_iteration = 0  # used for debug. TODO: remove after passing the test
+        # self.data_mem = Memory(size=gc.SIZE_DATA_MEM, parent_qcp=self)
 
     def restart(self):
         '''Restart the program. All architectural states except the instruction memory
@@ -186,8 +187,8 @@ class Quantum_control_processor():
         insn = self.insn_mem[self.pc]
 
         if self.cycle > 0:
-            log_msg = "cycle: {}, PC: {}, insn: {}\n".format(
-                self.cycle, self.pc, insn)
+            log_msg = "cycle: {}, lineno: {}, insn: {}\n".format(
+                self.cycle, insn.lineno, insn)
             logger.debug(log_msg)
             # self.trace_f.write(log_msg)
 
@@ -209,9 +210,22 @@ class Quantum_control_processor():
         if insn.name == eqasm_insn.STOP:
             self.stop_bit = 1
             self.pc += 1             # update the PC
+            self.data_mem.final_dump()
 
         elif insn.name == eqasm_insn.NOP:
             self.pc += 1             # update the PC
+
+        # ---------------------------- debug ----------------------------
+        elif insn.name == eqasm_insn.DUMPMEM:
+            if (insn.cmp_flag.startswith('r')):
+                reg_num = int(insn.cmp_flag[1:])
+                print('dumping register ' + insn.cmp_flag)
+                self.print_gpr(reg_num)
+            elif (insn.cmp_flag == ''):
+                self.data_mem.dump_content(insn.imm)
+            else:
+                self.data_mem.decode_data(insn.imm, insn.cmp_flag)
+            self.pc += 1
 
         # ------------------------- one operand -------------------------
         elif insn.name == eqasm_insn.QWAIT:  # currently ignore all timing related insns.
@@ -290,7 +304,7 @@ class Quantum_control_processor():
             # assumed imm is already interpreted as signed integer
             addr = self.read_gpr_uint(insn.rt) + insn.imm
             ret_word = self.data_mem.read_word(addr)
-
+            logger.debug('load value ({}) from the addr 0x{:x}'.format(ret_word, addr))
             self.write_gpr_bits(insn.rd, ret_word)
 
             self.pc += 1             # update the PC
@@ -335,6 +349,7 @@ class Quantum_control_processor():
         elif insn.name == eqasm_insn.FCVT_W_S:
             # Convert the 32-bit FP number in fs into a 32-bit signed integer,
             # and store it in rd.
+            # R[rd](31:0) = integer(F[fs])
             float_value = self.fprf[insn.fs].float()
 
             self.write_gpr_value(insn.rd, int=int(float_value))
@@ -344,8 +359,30 @@ class Quantum_control_processor():
         elif insn.name == eqasm_insn.FCVT_S_W:
             # Convert a 32-bit signed integer in rs into a 32-bit FP number,
             # and store it in fd.
+            # F[fd] = float(R[rs](31:0))
             int_value = self.read_gpr_int(insn.rs)
-            self.write_fpr_value(insn.fd, value=int_value)
+            self.write_fpr_value(insn.fd, value=float(int_value))
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == eqasm_insn.FMV_W_X:
+            # moves the single-precision value encoded in IEEE 754-2008 standard
+            #   encoding from the lower 32 bits of GPR rs to the FPR fd.
+            # F[fd] = R[rs]
+            # FMV.W.X fd, rs
+            bitstring = self.gprf.read(insn.rs)
+            self.write_fpr_bits(insn.fd, value=bitstring)
+
+            self.pc += 1             # update the PC
+
+        elif insn.name == eqasm_insn.FMV_X_W:
+            # FMV.X.W moves the single-precision value in floating-point register fs
+            #   represented in IEEE 754-2008 encoding to the lower 32 bits of integer
+            #   register rd
+            # R[rd] = F[fs]
+            # FMV.X.W rd, fs
+            bitstring = self.fprf.read(insn.fs)
+            self.write_gpr_bits(insn.rd, value=bitstring)
 
             self.pc += 1             # update the PC
 

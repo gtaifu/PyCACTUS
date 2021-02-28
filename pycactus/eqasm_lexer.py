@@ -29,6 +29,7 @@ class Eqasm_lexer(object):
     reserved = {
         'nop': 'NOP',
         'stop': 'STOP',
+        'dumpmem': 'DUMPMEM',
         'qwait': 'QWAIT',
         'qwaitr': 'QWAITR',
         'smis': 'SMIS',
@@ -81,6 +82,8 @@ class Eqasm_lexer(object):
         'bgeu': 'BGEU',
         'fcvt.w.s': 'FCVT_W_S',
         'fcvt.s.w': 'FCVT_S_W',
+        'fmv.w.x': 'FMV_W_X',
+        'fmv.x.w': 'FMV_X_W',
         'flw': 'FLW',
         'fsw': 'FSW',
         'fadd.s': 'FADD_S',
@@ -100,6 +103,7 @@ class Eqasm_lexer(object):
         'LBRACE',
         'RBRACE',
         'COMMA',
+        # 'SQUOTE',
         'COLON',
         'NEWLINE',
         'HEX',
@@ -111,7 +115,7 @@ class Eqasm_lexer(object):
         'SREG',
         'TREG',
         'QREG',
-        'VBAR'
+        'VBAR', 'STRING'
     ] + list(reserved.values())
 
     # Regular expression rules for simple tokens
@@ -121,6 +125,7 @@ class Eqasm_lexer(object):
     t_RBRACE = r"\}"
     t_COLON = r":"
     t_VBAR = r'\|'
+    # t_SQUOTE = r"'"
 
     def t_HEX(self, t):
         r'0x[0-9a-fA-F]+'
@@ -199,6 +204,11 @@ class Eqasm_lexer(object):
         t.type = self.reserved.get(t.value, 'IDENTIFIER')
         # print('token type: {}'.format(t.type))
         logger_lex.debug('lex: [{}: {}]'.format(t.type, t.value))
+        return t
+
+    def t_STRING(self, t):
+        r"'[a-zA-Z0-9 \[\]\(\),]+'"
+        t.value = t.value[1:-1]
         return t
 
     def t_NEWLINE(self, t):

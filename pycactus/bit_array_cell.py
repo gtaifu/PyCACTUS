@@ -11,7 +11,7 @@ class Bit_array_cell():
         # the width is supposed not to change in the future
         self.uint = 0
         self.int = 0
-        self.bitstring = self.update_value(BitArray(width))
+        self.update_value(BitArray(length=width))
         self._width = width
 
     @classmethod
@@ -65,13 +65,27 @@ class Register_file():
     def set_log_level(self, level):
         logger.setLevel(level)
 
+    def __str__(self):
+        '''Dump the content of the entire register file.'''
+        my_str = ''
+        for i, reg in enumerate(self.regs):
+            my_str += '{:>15}  '.format(self.reg_symbol + str(i) + ': ' + str(reg))
+            if i % 8 == 7:
+                my_str += '\n'
+        return my_str
+
+    def __obj_str__(self):
+        '''Dump the content of the entire register file.'''
+        my_str = ''
+        for i, reg in enumerate(self.regs):
+            my_str += '{:>15}  '.format(self.reg_symbol + str(i) + ': {}'.format(reg.bitstring))
+            if i % 8 == 7:
+                my_str += '\n'
+        return my_str
+
     def dump(self):
         'Dump the content of the entire register file.'
-        for i, reg in enumerate(self.regs):
-            print('{:>15}'.format(self.reg_symbol + str(i) + ': ' + str(reg)),
-                  end='  ')
-            if i % 8 == 7:
-                print('')
+        print(self.__str__())
 
     def print_reg(self, reg_num):
         'Print the content of a single register indicated by the register number `reg_num`.'
@@ -94,8 +108,10 @@ class Register_file():
             else:
                 value_str = "int: {}, uint: {}".format(value.int, value.uint)
 
-            logger.debug("Updating register {}{} with bitstring {} ({}). ".format(
-                self.reg_symbol, reg_dst, value, value_str))
+            # logger.debug("Updating register {}{} with bitstring {} ({}).\n".format(
+            #     self.reg_symbol, reg_dst, value, value_str))
+            logger.debug("{:>3s}  <--  {} ({}).\n".format(
+                '{}{}'.format(self.reg_symbol, reg_dst), hex(value.int), value.int))
 
         self.regs[reg_dst].update_value(value)
 
